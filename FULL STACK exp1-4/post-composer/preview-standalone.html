@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Broadcast — Multi-Platform Post Composer (Standalone Preview)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+:root {
+  --bg: #0b0e14; --surface: #10141d; --surface-raised: #151a25;
+  --border: #232a3a; --border-bright: #34405a; --text: #e6eaf2;
+  --text-muted: #7c879c; --text-dim: #4b5568;
+  --signal-ok: #5eead4; --signal-warn: #fbbf24; --signal-err: #fb7185;
+  --mono: 'IBM Plex Mono', monospace; --sans: 'Inter', sans-serif;
+}
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--sans);
+  background-image: linear-gradient(180deg, rgba(94,234,212,0.04), transparent 220px),
+    radial-gradient(circle at 15% 0%, rgba(94,234,212,0.06), transparent 40%); }
+::selection { background: var(--signal-ok); color: #06110f; }
+button { font-family: inherit; }
+textarea, input { font-family: inherit; color: inherit; }
+.app-shell { max-width: 1180px; margin: 0 auto; padding: 28px 24px 64px; }
+.console-header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 20px; margin-bottom: 24px; border-bottom: 1px solid var(--border); }
+.console-header .brand { display: flex; align-items: center; gap: 12px; }
+.brand-mark { width: 34px; height: 34px; border-radius: 8px; background: linear-gradient(135deg, var(--signal-ok), #34d0c4 60%, #1a7d74); display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-weight: 700; color: #06110f; font-size: 15px; }
+.brand-text .title { font-family: var(--mono); font-size: 14px; letter-spacing: .08em; text-transform: uppercase; font-weight: 600; }
+.brand-text .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.header-right { display: flex; align-items: center; gap: 18px; }
+.console-status { display: flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--signal-ok); box-shadow: 0 0 0 3px rgba(94,234,212,.15); }
+.publish-btn { font-family: var(--mono); font-size: 12.5px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: #06110f; background: var(--signal-ok); border: 1px solid var(--signal-ok); border-radius: 7px; padding: 9px 18px; cursor: pointer; transition: transform .1s, opacity .15s, background .15s; }
+.publish-btn:hover:not(:disabled) { transform: translateY(-1px); }
+.publish-btn:active:not(:disabled) { transform: translateY(0) scale(.97); }
+.publish-btn:disabled { background: transparent; border-color: var(--border); color: var(--text-dim); cursor: not-allowed; }
+.publish-btn.published { background: transparent; border-color: var(--signal-ok); color: var(--signal-ok); }
+@media (max-width: 600px) { .console-header { flex-wrap: wrap; gap: 14px; } .header-right { width: 100%; justify-content: space-between; } }
+.console-grid { display: grid; grid-template-columns: 220px 1fr 320px; gap: 20px; align-items: start; }
+@media (max-width: 980px) { .console-grid { grid-template-columns: 1fr; } }
+.panel { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
+.panel-label { font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 14px; }
+.platform-list { display: flex; flex-direction: column; gap: 8px; }
+.platform-toggle { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; background: var(--surface-raised); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; text-align: left; transition: border-color .15s, transform .1s; color: var(--text-muted); }
+.platform-toggle:hover { border-color: var(--border-bright); }
+.platform-toggle:active { transform: scale(.98); }
+.platform-toggle.active { border-color: var(--platform-accent, var(--signal-ok)); color: var(--text); box-shadow: 0 0 0 1px var(--platform-accent, var(--signal-ok)) inset; }
+.platform-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--platform-accent, var(--text-dim)); flex-shrink: 0; }
+.platform-toggle .name { font-size: 13px; font-weight: 600; flex: 1; }
+.platform-toggle .limit { font-family: var(--mono); font-size: 10.5px; color: var(--text-dim); }
+.rack-hint { margin-top: 14px; font-size: 11.5px; color: var(--text-dim); line-height: 1.5; }
+.composer-textarea { width: 100%; min-height: 190px; background: var(--surface-raised); border: 1px solid var(--border); border-radius: 8px; padding: 14px; color: var(--text); font-size: 15px; line-height: 1.55; resize: vertical; outline: none; transition: border-color .15s; }
+.composer-textarea:focus { border-color: var(--signal-ok); }
+.composer-toolbar { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; font-family: var(--mono); font-size: 11px; color: var(--text-dim); }
+.token-chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px; border-radius: 999px; background: var(--surface-raised); border: 1px solid var(--border); margin-right: 6px; font-family: var(--mono); font-size: 11px; color: var(--text-muted); }
+.meter-block { margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+.meter-block:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+.meter-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+.meter-head .plat-name { font-size: 12.5px; font-weight: 600; }
+.meter-head .plat-count { font-family: var(--mono); font-size: 11px; color: var(--text-muted); }
+.meter-track { height: 8px; border-radius: 5px; background: var(--surface-raised); border: 1px solid var(--border); overflow: hidden; display: flex; gap: 2px; padding: 1px; }
+.meter-segment { flex: 1; border-radius: 2px; background: #1c2231; }
+.meter-segment.filled { background: var(--seg-color, var(--signal-ok)); }
+.meter-sub { display: flex; gap: 12px; margin-top: 8px; font-family: var(--mono); font-size: 10.5px; color: var(--text-dim); }
+.log-list { display: flex; flex-direction: column; gap: 6px; font-family: var(--mono); font-size: 12px; max-height: 220px; overflow-y: auto; }
+.log-line { display: flex; gap: 8px; padding: 6px 8px; border-radius: 6px; background: var(--surface-raised); border: 1px solid var(--border); line-height: 1.4; }
+.log-tag { flex-shrink: 0; font-weight: 700; }
+.log-tag.ok { color: var(--signal-ok); }
+.log-tag.warn { color: var(--signal-warn); }
+.log-tag.err { color: var(--signal-err); }
+.log-empty { color: var(--text-dim); font-family: var(--mono); font-size: 12px; padding: 8px; }
+.preview-card { background: var(--surface-raised); border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+.preview-card:last-child { margin-bottom: 0; }
+.preview-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.preview-avatar { width: 26px; height: 26px; border-radius: 50%; background: var(--platform-accent, var(--text-dim)); flex-shrink: 0; }
+.preview-handle { font-size: 12px; font-weight: 600; }
+.preview-platform-tag { margin-left: auto; font-family: var(--mono); font-size: 9.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--platform-accent, var(--text-dim)); border: 1px solid var(--border); padding: 2px 6px; border-radius: 4px; }
+.preview-body { font-size: 13px; line-height: 1.5; color: var(--text-muted); white-space: pre-wrap; word-break: break-word; }
+.preview-more { color: var(--text-dim); font-size: 12px; }
+.empty-state { color: var(--text-dim); font-size: 12.5px; font-family: var(--mono); padding: 8px 0; }
+.section-gap { margin-top: 20px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useMemo } = React;
+
+const PLATFORMS = [
+  { id: 'x', label: 'X', handle: '@yourhandle', accent: '#1D9BF0', charLimit: 280, warnAt: 0.9, maxHashtags: 10, maxMentions: 10, maxMedia: 4, previewChars: 280 },
+  { id: 'instagram', label: 'Instagram', handle: '@yourhandle', accent: '#E1306C', charLimit: 2200, warnAt: 0.9, maxHashtags: 30, maxMentions: 20, maxMedia: 10, previewChars: 125 },
+  { id: 'linkedin', label: 'LinkedIn', handle: 'Your Name', accent: '#0A66C2', charLimit: 3000, warnAt: 0.9, maxHashtags: 5, maxMentions: 20, maxMedia: 9, previewChars: 210 },
+  { id: 'facebook', label: 'Facebook', handle: 'Your Page', accent: '#1877F2', charLimit: 63206, warnAt: 0.9, maxHashtags: 10, maxMentions: 50, maxMedia: 10, previewChars: 477 },
+];
+const platformsById = Object.fromEntries(PLATFORMS.map(p => [p.id, p]));
+
+const HASHTAG_RE = /#[\p{L}0-9_]+/gu;
+const MENTION_RE = /@[\w.]+/g;
+const URL_RE = /https?:\/\/\S+/g;
+
+function extractTokens(text) {
+  return { hashtags: text.match(HASHTAG_RE) || [], mentions: text.match(MENTION_RE) || [], urls: text.match(URL_RE) || [] };
+}
+function weightedLength(text, platform) {
+  if (platform.id !== 'x') return [...text].length;
+  const urls = text.match(URL_RE) || [];
+  let stripped = text;
+  urls.forEach(u => { stripped = stripped.replace(u, ''); });
+  return [...stripped].length + urls.length * 23;
+}
+function validatePost(text, platform, mediaCount) {
+  const trimmed = text.trim();
+  const { hashtags, mentions } = extractTokens(text);
+  const length = weightedLength(text, platform);
+  const ratio = length / platform.charLimit;
+  const errors = [], warnings = [];
+  if (trimmed.length === 0) errors.push('Post is empty. Add copy before scheduling.');
+  if (length > platform.charLimit) errors.push(`${length - platform.charLimit} character(s) over the ${platform.charLimit.toLocaleString()} limit.`);
+  else if (ratio >= platform.warnAt) warnings.push(`Approaching limit: ${length.toLocaleString()} / ${platform.charLimit.toLocaleString()} characters used.`);
+  if (hashtags.length > platform.maxHashtags) errors.push(`${hashtags.length} hashtags used, max is ${platform.maxHashtags}.`);
+  else if (hashtags.length > 0 && hashtags.length === platform.maxHashtags) warnings.push(`At the hashtag limit (${platform.maxHashtags}).`);
+  if (mentions.length > platform.maxMentions) errors.push(`${mentions.length} mentions used, max is ${platform.maxMentions}.`);
+  if (mediaCount > platform.maxMedia) errors.push(`${mediaCount} media items attached, max is ${platform.maxMedia}.`);
+  const status = errors.length > 0 ? 'error' : warnings.length > 0 ? 'warning' : 'ok';
+  return { platformId: platform.id, length, ratio: Math.min(ratio, 1), hashtagCount: hashtags.length, mentionCount: mentions.length, errors, warnings, status };
+}
+
+function PlatformSelector({ selected, onToggle }) {
+  return (
+    <div className="panel">
+      <div className="panel-label">01 · Target platforms</div>
+      <div className="platform-list">
+        {PLATFORMS.map(platform => {
+          const isActive = selected.includes(platform.id);
+          return (
+            <button key={platform.id} type="button" className={`platform-toggle${isActive ? ' active' : ''}`}
+              style={{ '--platform-accent': platform.accent }} onClick={() => onToggle(platform.id)} aria-pressed={isActive}>
+              <span className="platform-dot" />
+              <span className="name">{platform.label}</span>
+              <span className="limit">{platform.charLimit.toLocaleString()}</span>
+            </button>
+          );
+        })}
+      </div>
+      <p className="rack-hint">Select one or more destinations. The composer validates your draft against every selected platform's rules at the same time.</p>
+    </div>
+  );
+}
+
+function ComposerPanel({ text, onChange, mediaCount, onMediaChange }) {
+  const { hashtags, mentions, urls } = extractTokens(text);
+  return (
+    <div className="panel">
+      <div className="panel-label">02 · Draft</div>
+      <textarea className="composer-textarea" placeholder="Write once, publish everywhere. Start typing your post..." value={text} onChange={e => onChange(e.target.value)} />
+      <div className="composer-toolbar">
+        <div>
+          <span className="token-chip">{[...text].length} chars (raw)</span>
+          <span className="token-chip">#{hashtags.length} tags</span>
+          <span className="token-chip">@{mentions.length} mentions</span>
+          {urls.length > 0 && <span className="token-chip">{urls.length} link(s)</span>}
+        </div>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          media attached
+          <input type="number" min={0} max={20} value={mediaCount} onChange={e => onMediaChange(Math.max(0, Number(e.target.value) || 0))}
+            style={{ width: 44, background: 'var(--surface-raised)', border: '1px solid var(--border)', borderRadius: 6, padding: '3px 6px', fontFamily: 'var(--mono)' }} />
+        </label>
+      </div>
+    </div>
+  );
+}
+
+const SEGMENTS = 24;
+const statusColor = { ok: 'var(--signal-ok)', warning: 'var(--signal-warn)', error: 'var(--signal-err)' };
+function ConstraintMeter({ platform, result }) {
+  const filledSegments = Math.round(result.ratio * SEGMENTS);
+  return (
+    <div className="meter-block">
+      <div className="meter-head">
+        <span className="plat-name">{platform.label}</span>
+        <span className="plat-count">{result.length.toLocaleString()} / {platform.charLimit.toLocaleString()}</span>
+      </div>
+      <div className="meter-track">
+        {Array.from({ length: SEGMENTS }).map((_, i) => (
+          <div key={i} className={`meter-segment${i < filledSegments ? ' filled' : ''}`} style={{ '--seg-color': statusColor[result.status] }} />
+        ))}
+      </div>
+      <div className="meter-sub">
+        <span>#{result.hashtagCount}/{platform.maxHashtags}</span>
+        <span>@{result.mentionCount}/{platform.maxMentions}</span>
+        <span>{Math.round(result.ratio * 100)}% used</span>
+      </div>
+    </div>
+  );
+}
+
+function ValidationLog({ results }) {
+  const lines = [];
+  results.forEach(result => {
+    const platform = platformsById[result.platformId];
+    result.errors.forEach(msg => lines.push({ tag: 'ERR', cls: 'err', text: `${platform.label}: ${msg}` }));
+    result.warnings.forEach(msg => lines.push({ tag: 'WARN', cls: 'warn', text: `${platform.label}: ${msg}` }));
+    if (result.errors.length === 0 && result.warnings.length === 0) lines.push({ tag: 'OK', cls: 'ok', text: `${platform.label}: within all constraints, ready to publish.` });
+  });
+  return (
+    <div className="panel section-gap">
+      <div className="panel-label">03 · Validation log</div>
+      {lines.length === 0 ? <div className="log-empty">Select a platform and start typing to see live checks.</div> :
+        <div className="log-list">{lines.map((line, i) => (
+          <div className="log-line" key={i}><span className={`log-tag ${line.cls}`}>[{line.tag}]</span><span>{line.text}</span></div>
+        ))}</div>}
+    </div>
+  );
+}
+
+function PreviewPanel({ platforms, text }) {
+  if (platforms.length === 0) return <div className="panel"><div className="panel-label">Preview</div><div className="empty-state">No platform selected yet.</div></div>;
+  return (
+    <div className="panel">
+      <div className="panel-label">Preview</div>
+      {platforms.map(platform => {
+        const chars = [...text];
+        const clipped = chars.length > platform.previewChars;
+        const shown = clipped ? chars.slice(0, platform.previewChars).join('') : text;
+        return (
+          <div className="preview-card" key={platform.id} style={{ '--platform-accent': platform.accent }}>
+            <div className="preview-head">
+              <span className="preview-avatar" />
+              <span className="preview-handle">{platform.handle}</span>
+              <span className="preview-platform-tag">{platform.label}</span>
+            </div>
+            <div className="preview-body">{shown || 'Your post will appear here...'}{clipped && <span className="preview-more"> …more</span>}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function App() {
+  const [selectedIds, setSelectedIds] = useState(['x', 'instagram']);
+  const [text, setText] = useState('Excited to launch our new feature today! #ProductLaunch #BuildInPublic');
+  const [mediaCount, setMediaCount] = useState(1);
+  const [publishState, setPublishState] = useState('idle');
+
+  const toggle = id => {
+    setPublishState('idle');
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]);
+  };
+  const handleTextChange = value => { setPublishState('idle'); setText(value); };
+  const handleMediaChange = value => { setPublishState('idle'); setMediaCount(value); };
+
+  const selectedPlatforms = PLATFORMS.filter(p => selectedIds.includes(p.id));
+  const results = useMemo(() => selectedPlatforms.map(p => validatePost(text, p, mediaCount)), [selectedIds, text, mediaCount]);
+  const totalErrors = results.reduce((sum, r) => sum + r.errors.length, 0);
+  const readyCount = results.filter(r => r.status !== 'error').length;
+  const canPublish = selectedPlatforms.length > 0 && totalErrors === 0;
+
+  const handlePublish = () => {
+    if (!canPublish) return;
+    setPublishState('published');
+    setTimeout(() => setPublishState('idle'), 2500);
+  };
+
+  return (
+    <div className="app-shell">
+      <header className="console-header">
+        <div className="brand">
+          <div className="brand-mark">B</div>
+          <div className="brand-text">
+            <div className="title">Broadcast Composer</div>
+            <div className="subtitle">Experiment 1 — multi-platform post validation</div>
+          </div>
+        </div>
+        <div className="header-right">
+          <div className="console-status">
+            <span className="status-dot" />
+            {selectedPlatforms.length === 0 ? 'no platform selected' : `${readyCount}/${selectedPlatforms.length} ready to publish`}
+          </div>
+          <button
+            type="button"
+            className={`publish-btn${publishState === 'published' ? ' published' : ''}`}
+            disabled={!canPublish}
+            onClick={handlePublish}
+          >
+            {publishState === 'published' ? '✓ Published' : 'Publish'}
+          </button>
+        </div>
+      </header>
+      <div className="console-grid">
+        <PlatformSelector selected={selectedIds} onToggle={toggle} />
+        <div>
+          <ComposerPanel text={text} onChange={handleTextChange} mediaCount={mediaCount} onMediaChange={handleMediaChange} />
+          <div className="panel section-gap">
+            <div className="panel-label">Constraint meters</div>
+            {selectedPlatforms.length === 0 ? <div className="empty-state">Pick at least one platform to see live constraint tracking.</div> :
+              selectedPlatforms.map((platform, i) => <ConstraintMeter key={platform.id} platform={platform} result={results[i]} />)}
+          </div>
+          <ValidationLog results={results} />
+        </div>
+        <PreviewPanel platforms={selectedPlatforms} text={text} />
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
