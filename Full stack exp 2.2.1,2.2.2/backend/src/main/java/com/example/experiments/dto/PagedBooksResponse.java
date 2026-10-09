@@ -1,0 +1,21 @@
+package com.example.experiments.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class PagedBooksResponse {
+    private List<BookDTO> content;
+    private int page;
+    private int size;
+    private long totalElements;
+    private int totalPages;
+    private boolean last;
+    private String sortBy;
+    private String direction;
+}

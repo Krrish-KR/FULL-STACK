@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Spring Boot Read-API &amp; Performance Lab | Exp 2.2.1 &amp; 2.2.2</title>
+  <!-- Google Fonts for modern premium typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Ambient background glow elements -->
+  <div class="ambient-glow glow-1"></div>
+  <div class="ambient-glow glow-2"></div>
+  <div class="ambient-glow glow-3"></div>
+
+  <!-- Header section -->
+  <header class="navbar">
+    <div class="nav-container">
+      <div class="brand">
+        <div class="brand-logo">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+            <path d="M12 6v6"></path>
+            <path d="M9 9h6"></path>
+          </svg>
+        </div>
+        <div>
+          <div class="brand-title">Spring Boot Read-API Lab</div>
+          <div class="brand-tags">
+            <span class="tag tag-indigo">Exp 2.2.1: Pagination &amp; Sorting</span>
+            <span class="tag tag-cyan">Exp 2.2.2: N+1 &amp; Ehcache</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="nav-status-controls">
+        <div class="status-indicator-pill" id="healthStatusPill">
+          <span class="status-dot pulsing"></span>
+          <span class="status-text" id="healthStatusText">Checking Backend...</span>
+          <span class="latency-badge" id="latencyBadge">-- ms</span>
+        </div>
+        <div class="api-input-wrap">
+          <span class="api-icon">🌐</span>
+          <input id="apiBase" type="text" value="http://localhost:8080" title="Backend Base URL" placeholder="http://localhost:8080" />
+          <button id="testConnBtn" class="btn btn-secondary btn-sm" onclick="checkBackendHealth()">Ping</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="app-container">
+    <!-- Top KPI Stats Row -->
+    <section class="kpi-grid">
+      <div class="kpi-card" onclick="switchTab('tab-pagination')" style="cursor: pointer;" title="View Book Catalog">
+        <div class="kpi-icon icon-books">📚</div>
+        <div class="kpi-data">
+          <span class="kpi-val" id="kpiTotalBooks">1,200</span>
+          <span class="kpi-label">Seeded Book Catalog</span>
+        </div>
+      </div>
+      <div class="kpi-card" onclick="switchTab('tab-authors')" style="cursor: pointer;" title="View Author Directory">
+        <div class="kpi-icon icon-authors">✍️</div>
+        <div class="kpi-data">
+          <span class="kpi-val" id="kpiTotalAuthors">50</span>
+          <span class="kpi-label">Authors Across 20+ Countries</span>
+        </div>
+      </div>
+      <div class="kpi-card" onclick="switchTab('tab-caching')" style="cursor: pointer;" title="View Caching Lab">
+        <div class="kpi-icon icon-cache">⚡</div>
+        <div class="kpi-data">
+          <span class="kpi-val text-cyan">Ehcache JSR-107</span>
+          <span class="kpi-label">60s TTL In-Memory</span>
+        </div>
+      </div>
+      <div class="kpi-card" onclick="switchTab('tab-nplusone')" style="cursor: pointer;" title="View Benchmark Lab">
+        <div class="kpi-icon icon-opt">🚀</div>
+        <div class="kpi-data">
+          <span class="kpi-val text-emerald">JOIN FETCH</span>
+          <span class="kpi-label">Eliminates N+1 Queries</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Navigation Tabs -->
+    <div class="tabs-header">
+      <button class="tab-btn active" onclick="switchTab('tab-pagination')" id="tabBtn-pagination">
+        <span class="tab-icon">📄</span> Experiment 2.2.1: Books &amp; Genre Studio
+      </button>
+      <button class="tab-btn" onclick="switchTab('tab-authors')" id="tabBtn-authors">
+        <span class="tab-icon">✍️</span> Author Directory
+      </button>
+      <button class="tab-btn" onclick="switchTab('tab-nplusone')" id="tabBtn-nplusone">
+        <span class="tab-icon">⚡</span> Experiment 2.2.2: N+1 vs JOIN FETCH
+      </button>
+      <button class="tab-btn" onclick="switchTab('tab-caching')" id="tabBtn-caching">
+        <span class="tab-icon">🧠</span> Experiment 2.2.2: Native SQL &amp; Ehcache
+      </button>
+    </div>
+
+    <!-- ================= TAB 1: EXPERIMENT 2.2.1 ================= -->
+    <section class="tab-pane active" id="tab-pagination">
+      <div class="glass-card">
+        <div class="card-header-bar">
+          <div>
+            <h2 class="card-title">Paginated &amp; Dynamic Sorted Query Explorer (1,200 Books)</h2>
+            <p class="card-desc">
+              Demonstrates Spring Data JPA <code>Pageable</code>, multi-field sorting (Price, Year, Popularity, Title),
+              live genre filtering, full-catalog search, and interactive sorting by price and publication year.
+            </p>
+          </div>
+          <div class="header-actions">
+            <button class="btn btn-primary" onclick="loadPage(0)">
+              <span class="btn-icon">↻</span> Refresh Data
+            </button>
+          </div>
+        </div>
+
+        <div class="experiment-guide">
+          <div class="experiment-guide-copy">
+            <strong>Explore the live catalog</strong>
+            <span>Compare prices and publication years with server-side sorting, or search books across the full catalog.</span>
+          </div>
+          <div class="experiment-guide-actions">
+            <button class="btn btn-secondary btn-sm" onclick="exploreBookField('price')">Sort by price ↑</button>
+            <button class="btn btn-secondary btn-sm" onclick="exploreBookField('publishYear')">Sort by year ↑</button>
+          </div>
+        </div>
+
+        <!-- Filter and Sorting Toolbar -->
+        <div class="toolbar">
+          <!-- Active author filter pill -->
+          <div class="active-filter-pill hidden" id="authorFilterPill">
+            <span>Author: <strong id="authorFilterName"></strong></span>
+            <button class="clear-filter-btn" onclick="clearAuthorFilter()" title="Clear author filter">✕</button>
+          </div>
+
+          <div class="toolbar-group">
+            <label for="genreFilter" class="ctrl-label">Filter by Genre</label>
+            <select id="genreFilter" class="select-ctrl" onchange="loadPage(0)">
+              <option value="all">All Genres (15 types)</option>
+            </select>
+          </div>
+
+          <div class="toolbar-group">
+            <label for="pageSize" class="ctrl-label">Page Size</label>
+            <select id="pageSize" class="select-ctrl" onchange="loadPage(0)">
+              <option value="5">5 records</option>
+              <option value="10" selected>10 records</option>
+              <option value="20">20 records</option>
+              <option value="50">50 records</option>
+            </select>
+          </div>
+
+          <div class="toolbar-group">
+            <label for="sortBy" class="ctrl-label">Sort Column</label>
+            <select id="sortBy" class="select-ctrl" onchange="loadPage(0)">
+              <option value="id" selected>Book ID</option>
+              <option value="title">Title</option>
+              <option value="price">Price ($)</option>
+              <option value="publishYear">Publish Year</option>
+              <option value="popularity">Popularity Score</option>
+              <option value="genre">Genre</option>
+            </select>
+          </div>
+
+          <div class="toolbar-group">
+            <label for="sortDir" class="ctrl-label">Direction</label>
+            <div class="toggle-group">
+              <button class="toggle-btn active" id="dirAscBtn" onclick="setDirection('asc')">ASC ▲</button>
+              <button class="toggle-btn" id="dirDescBtn" onclick="setDirection('desc')">DESC ▼</button>
+              <input type="hidden" id="sortDir" value="asc" />
+            </div>
+          </div>
+
+          <div class="toolbar-group search-group">
+            <label for="searchFilter" class="ctrl-label">Search all 1,200 books</label>
+            <input type="search" id="searchFilter" class="input-ctrl" placeholder="Book title, author, country, or genre..." oninput="filterTableRows()" />
+          </div>
+        </div>
+
+        <!-- Table Container -->
+        <div class="table-container">
+          <table id="booksTable" class="modern-table">
+            <thead>
+              <tr>
+                <th onclick="sortTableBy('id')" class="sortable-col">
+                  <span>ID</span> <span class="sort-icon" id="sort-icon-id">▲</span>
+                </th>
+                <th onclick="sortTableBy('title')" class="sortable-col">
+                  <span>Title</span> <span class="sort-icon" id="sort-icon-title">↕</span>
+                </th>
+                <th onclick="sortTableBy('genre')" class="sortable-col">
+                  <span>Genre (Changeable)</span> <span class="sort-icon" id="sort-icon-genre">↕</span>
+                </th>
+                <th onclick="sortTableBy('price')" class="sortable-col">
+                  <span>Price</span> <span class="sort-icon" id="sort-icon-price">↕</span>
+                </th>
+                <th onclick="sortTableBy('publishYear')" class="sortable-col">
+                  <span>Year</span> <span class="sort-icon" id="sort-icon-publishYear">↕</span>
+                </th>
+                <th onclick="sortTableBy('popularity')" class="sortable-col">
+                  <span>Popularity</span> <span class="sort-icon" id="sort-icon-popularity">↕</span>
+                </th>
+                <th>Author &amp; Country</th>
+              </tr>
+            </thead>
+            <tbody id="booksTableBody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+          <div id="tableLoading" class="table-loader hidden">
+            <div class="spinner"></div>
+            <span>Fetching paged books from Spring Boot...</span>
+          </div>
+        </div>
+
+        <!-- Enhanced Pagination Bar -->
+        <div class="pagination-footer">
+          <div class="pagination-summary" id="paginationSummary">
+            Showing <strong id="summaryStart">0</strong> to <strong id="summaryEnd">0</strong> of <strong id="summaryTotal">0</strong> entries
+          </div>
+
+          <div class="pagination-controls">
+            <button class="btn btn-pagination" id="firstBtn" onclick="loadPage(0)" title="First Page">« First</button>
+            <button class="btn btn-pagination" id="prevBtn" onclick="prevPage()" title="Previous Page">‹ Prev</button>
+            <div class="page-pills" id="pagePills"></div>
+            <button class="btn btn-pagination" id="nextBtn" onclick="nextPage()" title="Next Page">Next ›</button>
+            <button class="btn btn-pagination" id="lastBtn" onclick="loadPage(totalPages - 1)" title="Last Page">Last »</button>
+          </div>
+
+          <div class="jump-to-wrap">
+            <span>Jump to:</span>
+            <input type="number" id="jumpPageInput" class="jump-input" min="1" placeholder="1" />
+            <button class="btn btn-secondary btn-sm" onclick="jumpToPage()">Go</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= TAB 4: AUTHOR DIRECTORY ================= -->
+    <section class="tab-pane" id="tab-authors">
+      <div class="glass-card">
+        <div class="card-header-bar">
+          <div>
+            <h2 class="card-title">✍️ Author Directory &amp; Literary Profiles</h2>
+            <p class="card-desc">
+              Browse 50 celebrated international authors from over 20 nations. Inspect their catalog size,
+              illustrated portraits, genres, average popularity, notable works, and click <strong>"View Books"</strong> to filter the catalog to any author!
+            </p>
+          </div>
+          <div class="header-actions">
+            <span class="badge-accent" id="authorCountBadge">50 Authors</span>
+          </div>
+        </div>
+
+        <!-- Author Directory Controls -->
+        <div class="toolbar">
+          <div class="toolbar-group search-group">
+            <label for="authorSearchInput" class="ctrl-label">Search Authors</label>
+            <input type="search" id="authorSearchInput" class="input-ctrl" placeholder="Search by author name or country..." oninput="filterAuthors()" />
+          </div>
+
+          <div class="toolbar-group">
+            <label for="authorCountryFilter" class="ctrl-label">Filter by Country</label>
+            <select id="authorCountryFilter" class="select-ctrl" onchange="filterAuthors()">
+              <option value="all">All Countries</option>
+            </select>
+          </div>
+
+          <div class="toolbar-group">
+            <label for="authorSortBy" class="ctrl-label">Sort Authors By</label>
+            <select id="authorSortBy" class="select-ctrl" onchange="filterAuthors()">
+              <option value="name" selected>Name (A–Z)</option>
+              <option value="books">Most Books</option>
+              <option value="popularity">Highest Popularity</option>
+              <option value="country">Country</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Authors Grid -->
+        <div class="authors-grid" id="authorsGrid">
+          <!-- Dynamically populated author cards -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= TAB 2: EXPERIMENT 2.2.2 ================= -->
+    <section class="tab-pane" id="tab-nplusone">
+      <div class="glass-card">
+        <div class="card-header-bar">
+          <div>
+            <h2 class="card-title">Experiment 2.2.2 — N+1 Problem vs. JOIN FETCH Optimization (1,200 Books)</h2>
+            <p class="card-desc">
+              Demonstrating the classic ORM performance pitfall across <strong>1,200 records</strong> and <strong>50 distinct authors</strong>:
+              Iterating lazy associations causes <strong>1 + 50 database roundtrips (51 queries)</strong>.
+              The fix is a JPQL <code>JOIN FETCH</code>, fetching all 1,200 books and authors in a <strong>single SQL query</strong>.
+            </p>
+          </div>
+          <button class="btn btn-accent" id="compareModesBtn" onclick="runSideBySideComparison()">
+            <span class="btn-icon">⚡</span> Run Side-by-Side Benchmark
+          </button>
+        </div>
+
+        <div class="mode-selector" aria-label="Select book loading mode">
+          <div class="mode-selector-copy">
+            <strong>Choose a loading mode</strong>
+            <span>Run the standard lazy-loading path or its JOIN FETCH optimization.</span>
+          </div>
+          <div class="mode-selector-controls">
+            <div class="mode-toggle" role="group" aria-label="Book loading mode">
+              <button class="mode-toggle-btn active" id="standardModeBtn" type="button" aria-pressed="true" onclick="selectBenchmarkMode('naive')">
+                Standard · N+1
+              </button>
+              <button class="mode-toggle-btn" id="fastModeBtn" type="button" aria-pressed="false" onclick="selectBenchmarkMode('optimized')">
+                Fast · JOIN FETCH
+              </button>
+            </div>
+            <button class="btn btn-primary" id="runSelectedModeBtn" type="button" onclick="runSelectedBenchmark()">
+              Run Standard Mode
+            </button>
+          </div>
+        </div>
+
+        <!-- Side-by-side benchmark cards -->
+        <div class="benchmark-grid">
+          <!-- Naive Card -->
+          <div class="benchmark-card naive-card">
+            <div class="bench-header">
+              <div class="bench-badge badge-warning">Unoptimized (N+1)</div>
+              <h3 class="bench-title">Default Lazy Loading</h3>
+              <p class="bench-meta"><code>findAll()</code> then touches <code>book.getAuthor().getName()</code> per row.</p>
+            </div>
+            <div class="bench-content" id="naiveResult">
+              <div class="bench-empty-state">Click to execute unoptimized lazy query across 1,200 books.</div>
+            </div>
+          </div>
+
+          <!-- Optimized Card -->
+          <div class="benchmark-card optimized-card">
+            <div class="bench-header">
+              <div class="bench-badge badge-success">Optimized (JOIN FETCH)</div>
+              <h3 class="bench-title">Eager JOIN FETCH</h3>
+              <p class="bench-meta"><code>SELECT b FROM Book b JOIN FETCH b.author a</code> in a single SQL statement.</p>
+            </div>
+            <div class="bench-content" id="optimizedResult">
+              <div class="bench-empty-state">Click to execute optimized JOIN FETCH query across 1,200 books.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Comparative Metrics Comparison Bar -->
+        <div class="comparison-panel hidden" id="comparisonPanel">
+          <h4 class="comparison-title">Side-by-Side Latency &amp; Query Comparison</h4>
+          <div class="comparison-stats">
+            <div class="comp-stat-item">
+              <span class="comp-stat-label">Backend execution time (measured by the API)</span>
+              <div class="latency-comparison-grid">
+                <div class="latency-comparison-item">
+                  <div class="latency-comparison-label">
+                    <span>Standard · N+1</span>
+                    <strong id="executionNaiveValue">-- ms</strong>
+                  </div>
+                  <div class="latency-bar-track">
+                    <div class="latency-bar latency-bar-naive" id="barExecutionNaive"></div>
+                  </div>
+                </div>
+                <div class="latency-comparison-item">
+                  <div class="latency-comparison-label">
+                    <span>Fast · JOIN FETCH</span>
+                    <strong id="executionOptValue">-- ms</strong>
+                  </div>
+                  <div class="latency-bar-track">
+                    <div class="latency-bar latency-bar-opt" id="barExecutionOpt"></div>
+                  </div>
+                </div>
+              </div>
+              <span class="comp-stat-highlight text-emerald" id="executionImprovementText">--</span>
+            </div>
+            <div class="comp-stat-item">
+              <span class="comp-stat-label">Browser-observed request latency (includes response transfer and JSON parsing)</span>
+              <div class="latency-comparison-grid">
+                <div class="latency-comparison-item">
+                  <div class="latency-comparison-label">
+                    <span>Standard · N+1</span>
+                    <strong id="latencyNaiveValue">-- ms</strong>
+                  </div>
+                  <div class="latency-bar-track">
+                    <div class="latency-bar latency-bar-naive" id="barLatencyNaive"></div>
+                  </div>
+                </div>
+                <div class="latency-comparison-item">
+                  <div class="latency-comparison-label">
+                    <span>Fast · JOIN FETCH</span>
+                    <strong id="latencyOptValue">-- ms</strong>
+                  </div>
+                  <div class="latency-bar-track">
+                    <div class="latency-bar latency-bar-opt" id="barLatencyOpt"></div>
+                  </div>
+                </div>
+              </div>
+              <span class="comp-stat-highlight text-emerald" id="latencyImprovementText">--</span>
+            </div>
+            <div class="comp-stat-item">
+              <span class="comp-stat-label">SQL Statements (Naive vs Optimized)</span>
+              <div class="bar-container">
+                <div class="bar-naive" id="barQueryNaive" style="width: 100%;">51 queries</div>
+                <div class="bar-opt" id="barQueryOpt" style="width: 3%;">1 query</div>
+              </div>
+            </div>
+            <div class="comp-stat-item">
+              <span class="comp-stat-label">Query Count Improvement</span>
+              <span class="comp-stat-highlight text-emerald" id="reductionPercentText">-- % Fewer Queries</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= TAB 3: EXPERIMENT 2.2.2 CACHING ================= -->
+    <section class="tab-pane" id="tab-caching">
+      <div class="glass-card">
+        <div class="card-header-bar">
+          <div>
+            <h2 class="card-title">Experiment 2.2.2 — Native Query + Ehcache (JSR-107) Caching</h2>
+            <p class="card-desc">
+              Executes a hand-tuned native SQL query: <code>SELECT * FROM books ORDER BY popularity DESC LIMIT :limit</code>.
+              The response is cached in memory via <strong>Ehcache 3</strong> with a 60-second TTL. Subsequent calls are served instantly with zero database load!
+            </p>
+          </div>
+          <div class="header-actions">
+            <button class="btn btn-danger" onclick="evictCache()">
+              <span class="btn-icon">🗑</span> Evict Cache
+            </button>
+          </div>
+        </div>
+
+        <div class="cache-controls-bar">
+          <div class="toolbar-group">
+            <label for="popularLimit" class="ctrl-label">Top N Books</label>
+            <div class="range-wrap">
+              <input id="popularLimit" type="number" class="input-ctrl num-ctrl" value="5" min="1" max="25" onchange="syncLimitSlider(this.value)" />
+              <input type="range" id="popularSlider" min="1" max="25" value="5" class="slider-ctrl" oninput="syncLimitInput(this.value)" />
+            </div>
+          </div>
+          <button class="btn btn-primary" id="fetchPopularBtn" onclick="runPopular()">
+            <span class="btn-icon">⚡</span> Fetch Top Books
+          </button>
+        </div>
+
+        <!-- Cache Status Badge & Metrics -->
+        <div class="cache-metric-banner hidden" id="cacheMetricBanner">
+          <div class="cache-metric-pill" id="cacheHitPill">
+            <span class="pill-dot"></span>
+            <span id="cacheHitLabel">CACHE HIT</span>
+          </div>
+          <div class="cache-time-info">
+            Response Time: <strong id="cacheLatencyVal">0 ms</strong>
+            <span class="cache-subtext" id="cacheSubtext">Served from Ehcache in-memory cache</span>
+          </div>
+        </div>
+
+        <div class="cache-complexity-grid" aria-label="Cache time complexity">
+          <article class="cache-complexity-card cache-complexity-hit">
+            <div class="cache-complexity-heading">
+              <span class="cache-complexity-indicator"></span>
+              <h3>Cache hit</h3>
+            </div>
+            <strong class="cache-complexity-value">O(1) lookup + O(k) response</strong>
+            <p>Ehcache lookup is O(1) on average. Returning and serializing the k requested books takes O(k); no database query runs.</p>
+          </article>
+          <article class="cache-complexity-card cache-complexity-miss">
+            <div class="cache-complexity-heading">
+              <span class="cache-complexity-indicator"></span>
+              <h3>Cache miss</h3>
+            </div>
+            <strong class="cache-complexity-value">O(N log N) query + O(k) cache write</strong>
+            <p>N is the catalog size and k is the requested result count. The current popularity sort has no index, so its worst case scans and sorts N books before caching k results.</p>
+          </article>
+        </div>
+
+        <!-- Top Books Display Grid -->
+        <div class="top-books-container" id="topBooksContainer">
+          <div class="bench-empty-state">Click "Fetch Top Books" to execute the native query with Ehcache.</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Footer -->
+  <footer class="app-footer">
+    <div class="footer-content">
+      <span>Backend: <strong>Spring Boot 3.3.4 (Java 17)</strong> + Spring Data JPA + Hibernate Statistics + Ehcache 3.10 (JSR-107) + H2</span>
+      <span>Frontend: Vanilla HTML5 / CSS3 / Modern ES6 (Zero build tooling required)</span>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
