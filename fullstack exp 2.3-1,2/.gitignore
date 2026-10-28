@@ -1,0 +1,6 @@
+﻿# Ignore generated files
+/target/
+/.idea/
+/.vscode/
+*.class
+*.log

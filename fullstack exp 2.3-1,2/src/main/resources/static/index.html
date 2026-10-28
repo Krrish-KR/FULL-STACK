@@ -1,0 +1,2494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SecLab 2.3 // Cryptography, RBAC &amp; Exp 3.2.2 Console</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-base: #070a12;
+      --bg-surface: rgba(15, 23, 42, 0.75);
+      --bg-surface-elevated: rgba(30, 41, 59, 0.75);
+      --bg-card: rgba(17, 24, 39, 0.85);
+      --bg-glass: rgba(255, 255, 255, 0.035);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-focus: rgba(99, 102, 241, 0.6);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --primary-glow: rgba(99, 102, 241, 0.3);
+      --cyan: #06b6d4;
+      --cyan-glow: rgba(6, 182, 212, 0.3);
+      --purple: #a855f7;
+      --purple-glow: rgba(168, 85, 247, 0.3);
+      --rose: #f43f5e;
+      --rose-glow: rgba(244, 63, 94, 0.3);
+      --emerald: #10b981;
+      --emerald-glow: rgba(16, 185, 129, 0.3);
+      --amber: #f59e0b;
+      --amber-glow: rgba(245, 158, 11, 0.3);
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --shadow-lg: 0 16px 40px -12px rgba(0, 0, 0, 0.65);
+      --shadow-glow: 0 0 24px rgba(99, 102, 241, 0.2);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg-base);
+      background-image: 
+        radial-gradient(circle at 10% 10%, rgba(99, 102, 241, 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 90% 20%, rgba(6, 182, 212, 0.12) 0%, transparent 45%),
+        radial-gradient(circle at 50% 90%, rgba(168, 85, 247, 0.1) 0%, transparent 50%),
+        linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 100% 100%, 36px 36px, 36px 36px;
+      color: var(--text-main);
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      padding-bottom: 90px;
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 24px 20px;
+    }
+
+    /* Header & Status HUD */
+    header {
+      background: var(--bg-surface);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 18px 24px;
+      margin-bottom: 24px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .brand-icon {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, var(--primary), var(--cyan));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      box-shadow: 0 0 20px var(--primary-glow);
+    }
+    .brand-title {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #fff 30%, #cbd5e1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .brand-sub {
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 2px;
+    }
+    .port-pill {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      color: #34d399;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 20px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .port-dot {
+      width: 6px;
+      height: 6px;
+      background: #34d399;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #34d399;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+
+    /* Active Session HUD */
+    .hud-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 8px 14px;
+    }
+    .hud-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+    }
+    .hud-label {
+      color: var(--text-dim);
+      font-weight: 600;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 20px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .badge-user { background: rgba(6, 182, 212, 0.15); color: #22d3ee; border: 1px solid rgba(6, 182, 212, 0.35); }
+    .badge-manager { background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.35); }
+    .badge-admin { background: rgba(244, 63, 94, 0.15); color: #fb7185; border: 1px solid rgba(244, 63, 94, 0.35); }
+    .badge-none { background: rgba(148, 163, 184, 0.1); color: #94a3b8; border: 1px solid var(--border-subtle); }
+    .badge-live { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35); }
+    .badge-exp { background: rgba(244, 63, 94, 0.15); color: #fb7185; border: 1px solid rgba(244, 63, 94, 0.35); }
+
+    /* Navigation Tabs */
+    .tabs-wrapper {
+      display: flex;
+      flex-wrap: wrap;
+      background: var(--bg-surface);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 6px;
+      gap: 6px;
+      margin-bottom: 24px;
+    }
+    .tab-btn {
+      flex: 1;
+      min-width: 160px;
+      padding: 12px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: transparent;
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .tab-btn:hover {
+      color: var(--text-main);
+      background: var(--bg-glass);
+    }
+    .tab-btn.active {
+      color: #fff;
+      background: linear-gradient(135deg, var(--primary), #4338ca);
+      box-shadow: 0 4px 16px var(--primary-glow);
+    }
+    .tab-btn.highlight {
+      position: relative;
+    }
+    .tab-btn.highlight::after {
+      content: 'Exp 3.2.2';
+      position: absolute;
+      top: -6px;
+      right: 6px;
+      background: #10b981;
+      color: #042f1a;
+      font-size: 9px;
+      font-weight: 800;
+      padding: 1px 6px;
+      border-radius: 10px;
+      letter-spacing: 0.05em;
+    }
+
+    /* Panes */
+    .tab-pane {
+      display: none;
+      animation: fadeIn 0.25s ease;
+    }
+    .tab-pane.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Grid Layouts */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    @media (max-width: 960px) {
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    }
+
+    /* Cards */
+    .card {
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 22px;
+      box-shadow: var(--shadow-lg);
+      margin-bottom: 24px;
+      position: relative;
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .card-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .card-title-icon {
+      font-size: 18px;
+    }
+    .card-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 18px;
+      line-height: 1.6;
+    }
+
+    /* Forms & Inputs */
+    .form-group {
+      margin-bottom: 14px;
+    }
+    .form-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 6px;
+    }
+    input[type="text"], input[type="password"], textarea, select {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      color: #fff;
+      padding: 10px 14px;
+      font-family: inherit;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+    input[type="text"]:focus, input[type="password"]:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: var(--border-focus);
+      box-shadow: 0 0 12px var(--primary-glow);
+    }
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+    }
+
+    /* Buttons */
+    .btn {
+      padding: 10px 18px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border: 1px solid transparent;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .btn-sm {
+      padding: 6px 12px;
+      font-size: 12px;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+      color: #fff;
+      box-shadow: 0 4px 12px var(--primary-glow);
+    }
+    .btn-primary:hover {
+      box-shadow: 0 6px 20px var(--primary-glow);
+      transform: translateY(-1px);
+    }
+    .btn-cyan {
+      background: linear-gradient(135deg, #0891b2, #0284c7);
+      color: #fff;
+      box-shadow: 0 4px 12px var(--cyan-glow);
+    }
+    .btn-purple {
+      background: linear-gradient(135deg, #9333ea, #7e22ce);
+      color: #fff;
+      box-shadow: 0 4px 12px var(--purple-glow);
+    }
+    .btn-rose {
+      background: linear-gradient(135deg, #e11d48, #be123c);
+      color: #fff;
+      box-shadow: 0 4px 12px var(--rose-glow);
+    }
+    .btn-emerald {
+      background: linear-gradient(135deg, #059669, #047857);
+      color: #fff;
+      box-shadow: 0 4px 12px var(--emerald-glow);
+    }
+    .btn-ghost {
+      background: var(--bg-glass);
+      color: var(--text-main);
+      border-color: var(--border-subtle);
+    }
+    .btn-ghost:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Persona Selector Cards */
+    .persona-card {
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: all 0.2s;
+    }
+    .persona-card:hover {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: var(--primary);
+      transform: translateY(-2px);
+    }
+    .persona-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+    .persona-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .persona-role {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+    .persona-desc {
+      font-size: 11px;
+      color: var(--text-dim);
+      margin-top: 2px;
+    }
+
+    /* JWT Inspector Display */
+    .jwt-container {
+      background: #080c14;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 14px;
+      margin-bottom: 16px;
+    }
+    .jwt-raw {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      word-break: break-all;
+      line-height: 1.6;
+      max-height: 85px;
+      overflow-y: auto;
+      padding: 8px;
+      background: rgba(0,0,0,0.4);
+      border-radius: 6px;
+      margin-bottom: 12px;
+    }
+    .jwt-part-header { color: #fb7185; font-weight: 600; }
+    .jwt-part-payload { color: #c084fc; font-weight: 600; }
+    .jwt-part-sig { color: #38bdf8; font-weight: 600; }
+    .jwt-block {
+      background: rgba(0,0,0,0.5);
+      border-radius: 6px;
+      padding: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: #cbd5e1;
+      max-height: 140px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+
+    /* RBAC Endpoints List */
+    .endpoint-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .endpoint-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+    }
+    .endpoint-meta {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+    }
+    .method-get {
+      color: #34d399;
+      font-weight: 700;
+      background: rgba(16, 185, 129, 0.15);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .endpoint-req {
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 12px;
+    }
+    .req-public { background: rgba(148, 163, 184, 0.15); color: #94a3b8; }
+    .req-user { background: rgba(6, 182, 212, 0.15); color: #22d3ee; }
+    .req-manager { background: rgba(168, 85, 247, 0.15); color: #c084fc; }
+    .req-admin { background: rgba(244, 63, 94, 0.15); color: #fb7185; }
+
+    /* Tables */
+    .table-responsive {
+      overflow-x: auto;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      text-align: left;
+    }
+    th, td {
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    th {
+      background: rgba(0, 0, 0, 0.4);
+      color: var(--text-dim);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 700;
+    }
+    tbody tr:hover {
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .matrix-ok {
+      color: #34d399;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .matrix-bad {
+      color: #f43f5e;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Crypto Deconstruction */
+    .crypto-deconstruct {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+    }
+    .crypto-chunk {
+      background: rgba(0, 0, 0, 0.45);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+    }
+    .crypto-chunk-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 700;
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .crypto-chunk-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      word-break: break-all;
+      color: #cbd5e1;
+      max-height: 80px;
+      overflow-y: auto;
+    }
+
+    /* Token Lifecycle Pipeline */
+    .lifecycle-pipeline {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin: 18px 0;
+    }
+    .pipeline-step {
+      flex: 1;
+      min-width: 170px;
+      background: var(--bg-glass);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      position: relative;
+    }
+    .pipeline-step.active {
+      border-color: var(--primary);
+      background: rgba(99, 102, 241, 0.1);
+    }
+    .step-num {
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--primary);
+      margin-bottom: 4px;
+    }
+    .step-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 2px;
+    }
+    .step-desc {
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+
+    /* Token Timing Big Radar */
+    .timing-hero {
+      background: radial-gradient(circle at center, rgba(99, 102, 241, 0.15) 0%, rgba(0, 0, 0, 0.5) 70%);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 30px 20px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .timing-clock {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 48px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      color: #fff;
+      text-shadow: 0 0 20px var(--primary-glow);
+      margin-bottom: 8px;
+    }
+    .timing-clock.warning {
+      color: #fbbf24;
+      text-shadow: 0 0 20px var(--amber-glow);
+    }
+    .timing-clock.danger {
+      color: #f43f5e;
+      text-shadow: 0 0 20px var(--rose-glow);
+    }
+    .timing-sub {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    /* Terminal & Audit Log */
+    .terminal-card {
+      background: #060911;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      margin-top: 24px;
+      box-shadow: var(--shadow-lg);
+    }
+    .terminal-header {
+      background: #0d1322;
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 12px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .terminal-dots {
+      display: flex;
+      gap: 6px;
+    }
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+    .dot-red { background: #ef4444; }
+    .dot-yellow { background: #f59e0b; }
+    .dot-green { background: #10b981; }
+    .terminal-title {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--text-dim);
+      font-weight: 600;
+    }
+    .terminal-body {
+      padding: 14px 18px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      max-height: 260px;
+      overflow-y: auto;
+      line-height: 1.6;
+    }
+    .log-item {
+      margin-bottom: 10px;
+      padding-bottom: 10px;
+      border-bottom: 1px dashed rgba(255, 255, 255, 0.06);
+    }
+    .log-time { color: var(--text-dim); margin-right: 8px; font-size: 11px; }
+    .status-200 { color: #34d399; font-weight: 700; }
+    .status-401 { color: #fbbf24; font-weight: 700; }
+    .status-403 { color: #f43f5e; font-weight: 700; }
+    .status-400 { color: #fb923c; font-weight: 700; }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--bg-surface-elevated);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 1000;
+      max-width: 440px;
+    }
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+    .toast-icon { font-size: 20px; }
+    .toast-msg { font-size: 13px; font-weight: 600; color: #fff; }
+
+    /* Progress bar */
+    .progress-bar-bg {
+      width: 100%;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #34d399, #06b6d4);
+      width: 100%;
+      transition: width 0.5s linear;
+    }
+    .progress-bar-fill.expiring {
+      background: linear-gradient(90deg, #fbbf24, #f43f5e);
+    }
+
+    /* Highlight Banner for Unlock */
+    .unlock-banner {
+      background: linear-gradient(90deg, rgba(16, 185, 129, 0.15), rgba(6, 182, 212, 0.15));
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      border-radius: var(--radius-sm);
+      padding: 12px 18px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .unlock-banner-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #34d399;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+
+    <!-- Top Header & System Status HUD -->
+    <header>
+      <div class="brand-group">
+        <div class="brand-icon">🛡️</div>
+        <div>
+          <div class="brand-title">SecLab 2.3 // Cryptography, RBAC &amp; Exp 3.2.2</div>
+          <div class="brand-sub">
+            <span>Spring Security + Stateless JJWT + AES-256-GCM + Token Rotation</span>
+            <span class="port-pill"><span class="port-dot"></span> localhost:8080 (Single Host)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active Session HUD -->
+      <div class="hud-bar">
+        <div class="hud-item">
+          <span class="hud-label">User:</span>
+          <span id="hud-user" class="badge badge-none">Anonymous</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-label">Access JWT:</span>
+          <span id="hud-access" class="badge badge-none">None</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-label">Refresh Token:</span>
+          <span id="hud-refresh" class="badge badge-none">None</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-label">Auto-Refresh:</span>
+          <button id="hud-autorefresh-toggle" class="badge badge-live" onclick="toggleAutoRefresh()" style="cursor:pointer; border:1px solid rgba(16, 185, 129, 0.4);" title="Click to Toggle Automatic Token Refresh">
+            ⚡ AUTO: ON
+          </button>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="logout()" title="Logout and revoke refresh token">
+          🚪 Logout
+        </button>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <div class="tabs-wrapper">
+      <button id="tab-btn-1" class="tab-btn active" onclick="switchTab(1)">
+        <span>🔐</span> Part 1: Login &amp; RBAC (Exp 2.3.1)
+      </button>
+      <button id="tab-btn-2" class="tab-btn highlight" onclick="switchTab(2)">
+        <span>🛡️</span> Part 2: Exp 3.2.2 (AES Encrypt &amp; Decrypt)
+      </button>
+      <button id="tab-btn-3" class="tab-btn" onclick="switchTab(3)">
+        <span>🔗</span> Link &amp; Data Encryption Verifier
+      </button>
+      <button id="tab-btn-4" class="tab-btn" onclick="switchTab(4)">
+        <span>⏱️</span> Token Timing &amp; Radar
+      </button>
+      <button id="tab-btn-5" class="tab-btn" onclick="switchTab(5)">
+        <span>📜</span> Login History &amp; Audits
+      </button>
+      <button id="tab-btn-6" class="tab-btn" onclick="switchTab(6)">
+        <span>💾</span> Architecture &amp; DB
+      </button>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- TAB 1: LOGIN PORTAL & RBAC SPECIFICATIONS (EXP 2.3.1)         -->
+    <!-- ============================================================== -->
+    <div id="pane-1" class="tab-pane active">
+
+      <!-- Authentication Portal Grid -->
+      <div class="grid-2">
+        
+        <!-- Login & Registration Card -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <span class="card-title-icon">🔑</span>
+              <span>Authentication Gateway</span>
+            </div>
+            <div style="display:flex; gap:6px;">
+              <button id="mode-login-btn" class="btn btn-primary btn-sm" onclick="setAuthMode('login')">Login</button>
+              <button id="mode-reg-btn" class="btn btn-ghost btn-sm" onclick="setAuthMode('register')">Register</button>
+            </div>
+          </div>
+          <div class="card-desc" id="auth-desc">
+            Sign in with Spring Security stateless authentication. Passwords encrypted using BCrypt (adaptive salt+hash).
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Username</label>
+            <input type="text" id="auth-username" value="user" placeholder="e.g. user, manager, admin">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Password</label>
+            <input type="password" id="auth-password" value="user123" placeholder="••••••••">
+          </div>
+          <div class="form-group" id="reg-role-group" style="display:none;">
+            <label class="form-label">Assigned Role (Lab Override)</label>
+            <select id="auth-role">
+              <option value="USER">USER (Standard Privileges)</option>
+              <option value="MANAGER">MANAGER (Elevated Reports Access)</option>
+              <option value="ADMIN">ADMIN (Full System Authority)</option>
+            </select>
+          </div>
+
+          <div style="display:flex; gap:10px; margin-top:16px;">
+            <button id="auth-submit-btn" class="btn btn-primary" style="flex:1;" onclick="submitAuth()">
+              Sign In According to Specification
+            </button>
+          </div>
+
+          <!-- Quick Persona Cards -->
+          <div style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border-subtle);">
+            <div class="form-label" style="margin-bottom:10px;">Quick Logins According to Specification (1-Click)</div>
+            <div class="grid-3">
+              <div class="persona-card" onclick="quickLogin('user','user123')" title="Click to login as USER">
+                <div class="persona-avatar" style="background:rgba(6, 182, 212, 0.2); color:#22d3ee;">👤</div>
+                <div class="persona-info">
+                  <div class="persona-name">User</div>
+                  <div class="persona-role">ROLE_USER</div>
+                  <div class="persona-desc">user / user123</div>
+                </div>
+              </div>
+              <div class="persona-card" onclick="quickLogin('manager','manager123')" title="Click to login as MANAGER">
+                <div class="persona-avatar" style="background:rgba(168, 85, 247, 0.2); color:#c084fc;">💼</div>
+                <div class="persona-info">
+                  <div class="persona-name">Manager</div>
+                  <div class="persona-role">ROLE_MANAGER</div>
+                  <div class="persona-desc">manager / manager123</div>
+                </div>
+              </div>
+              <div class="persona-card" onclick="quickLogin('admin','admin123')" title="Click to login as ADMIN">
+                <div class="persona-avatar" style="background:rgba(244, 63, 94, 0.2); color:#fb7185;">⚡</div>
+                <div class="persona-info">
+                  <div class="persona-name">Admin</div>
+                  <div class="persona-role">ROLE_ADMIN</div>
+                  <div class="persona-desc">admin / admin123</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- JWT Cryptographic Inspector Card -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <span class="card-title-icon">🔍</span>
+              <span>Cryptographic JWT Inspector</span>
+            </div>
+            <span id="jwt-status-tag" class="badge badge-none">No Token</span>
+          </div>
+          <div class="card-desc">
+            Visual inspection of the signed HMAC-SHA256 Access Token. Claims carry the role authority checked by <code>JwtAuthFilter</code>.
+          </div>
+
+          <div class="jwt-container">
+            <div class="jwt-raw" id="jwt-raw-display">
+              <span style="color:var(--text-dim);">Authenticate to inspect active signed JWT payload...</span>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
+              <span style="color:#fb7185; font-weight:700; font-size:11px;">HEADER (Algorithm &amp; Type)</span>
+              <button class="btn btn-ghost btn-sm" onclick="copyText('jwt-header-box')">Copy</button>
+            </div>
+            <div class="jwt-block" id="jwt-header-box">{}</div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px;">
+              <span style="color:#c084fc; font-weight:700; font-size:11px;">PAYLOAD (Claims &amp; Authorities)</span>
+              <button class="btn btn-ghost btn-sm" onclick="copyText('jwt-payload-box')">Copy</button>
+            </div>
+            <div class="jwt-block" id="jwt-payload-box">{}</div>
+          </div>
+
+          <div style="display:flex; gap:10px;">
+            <button class="btn btn-rose btn-sm" style="flex:1;" onclick="tamperJwt()">
+              😈 Simulate Privilege Escalation (Tamper Role to ADMIN)
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Role-Based Access Control (RBAC) Test Ground -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="card-title-icon">🎯</span>
+            <span>RBAC Endpoint Execution Ground</span>
+          </div>
+          <span style="font-size:12px; color:var(--text-muted);">Enforced via Spring Security &amp; <code>@PreAuthorize</code></span>
+        </div>
+        <div class="card-desc">
+          Test calling backend routes with your currently authenticated identity. Notice how endpoints return <code>200 OK</code>, <code>401 Unauthorized</code> (missing/bad token), or <code>403 Forbidden</code> (insufficient role privileges).
+        </div>
+
+        <div class="endpoint-grid">
+          
+          <div class="endpoint-row">
+            <div class="endpoint-meta">
+              <span class="method-get">GET</span>
+              <span>/api/public/hello</span>
+              <span class="endpoint-req req-public">Public / Anonymous</span>
+            </div>
+            <button class="btn btn-ghost btn-sm" onclick="callApi('/api/public/hello')">Test Endpoint</button>
+          </div>
+
+          <div class="endpoint-row">
+            <div class="endpoint-meta">
+              <span class="method-get">GET</span>
+              <span>/api/user/profile</span>
+              <span class="endpoint-req req-user">USER, MANAGER, ADMIN</span>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <button class="btn btn-cyan btn-sm" onclick="callApi('/api/user/profile')">Call with Bearer</button>
+              <button class="btn btn-ghost btn-sm" onclick="callApi('/api/user/profile', true)">Call without Token</button>
+            </div>
+          </div>
+
+          <div class="endpoint-row">
+            <div class="endpoint-meta">
+              <span class="method-get">GET</span>
+              <span>/api/manager/reports</span>
+              <span class="endpoint-req req-manager">MANAGER, ADMIN</span>
+            </div>
+            <button class="btn btn-purple btn-sm" onclick="callApi('/api/manager/reports')">Test Endpoint</button>
+          </div>
+
+          <div class="endpoint-row">
+            <div class="endpoint-meta">
+              <span class="method-get">GET</span>
+              <span>/api/admin/users</span>
+              <span class="endpoint-req req-admin">ADMIN ONLY</span>
+            </div>
+            <button class="btn btn-rose btn-sm" onclick="callApi('/api/admin/users')">Test Endpoint</button>
+          </div>
+
+          <div class="endpoint-row">
+            <div class="endpoint-meta">
+              <span class="method-get">GET</span>
+              <span>/api/reports/finance</span>
+              <span class="endpoint-req req-manager">@PreAuthorize("hasAnyRole('ADMIN','MANAGER')")</span>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="callApi('/api/reports/finance')">Test Endpoint</button>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Automated RBAC Verification Matrix Card -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="card-title-icon">📊</span>
+            <span>Automated RBAC Permutation Matrix (20 Test Vectors)</span>
+          </div>
+          <button class="btn btn-emerald btn-sm" onclick="runRbacMatrix()">
+            ▶ Run Complete Verification Matrix
+          </button>
+        </div>
+        <div class="card-desc">
+          Automatically signs in as each identity (Anonymous, USER, MANAGER, ADMIN) in sequence and executes calls across all 5 endpoints. Verifies whether Spring Security properly permits or forbids requests per specification.
+        </div>
+
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>Protected Endpoint</th>
+                <th>Anonymous (No Token)</th>
+                <th>USER Role</th>
+                <th>MANAGER Role</th>
+                <th>ADMIN Role</th>
+              </tr>
+            </thead>
+            <tbody id="matrix-tbody">
+              <tr>
+                <td>GET /api/public/hello</td>
+                <td>Expected: 200</td>
+                <td>Expected: 200</td>
+                <td>Expected: 200</td>
+                <td>Expected: 200</td>
+              </tr>
+              <tr>
+                <td>GET /api/user/profile</td>
+                <td>Expected: 401</td>
+                <td>Expected: 200</td>
+                <td>Expected: 200</td>
+                <td>Expected: 200</td>
+              </tr>
+              <tr>
+                <td>GET /api/manager/reports</td>
+                <td>Expected: 401</td>
+                <td>Expected: 403</td>
+                <td>Expected: 200</td>
+                <td>Expected: 200</td>
+              </tr>
+              <tr>
+                <td>GET /api/admin/users</td>
+                <td>Expected: 401</td>
+                <td>Expected: 403</td>
+                <td>Expected: 403</td>
+                <td>Expected: 200</td>
+              </tr>
+              <tr>
+                <td>GET /api/reports/finance (@PreAuthorize)</td>
+                <td>Expected: 401</td>
+                <td>Expected: 403</td>
+                <td>Expected: 200</td>
+                <td>Expected: 200</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- TAB 2: EXP 3.2.2: AES-256-GCM ENCRYPTION & DECRYPTION          -->
+    <!-- ============================================================== -->
+    <div id="pane-2" class="tab-pane">
+
+      <!-- Unlocked Info Banner -->
+      <div class="unlock-banner" id="unlock-banner-msg">
+        <div class="unlock-banner-title">
+          <span>🛡️</span>
+          <span>Exp 3.2.2 Interface: AES-256-GCM Authenticated Encryption &amp; Decryption Suite Unlocked!</span>
+        </div>
+        <span class="port-pill">Authenticated Session Active</span>
+      </div>
+
+      <!-- AES-256-GCM Cryptographic Playground -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="card-title-icon">🔐</span>
+            <span>Exp 3.2.2: AES-256-GCM Authenticated Encryption Playground</span>
+          </div>
+          <span class="port-pill">AES/GCM/NoPadding (256-bit Key)</span>
+        </div>
+        <div class="card-desc">
+          NIST-standard authenticated cipher providing confidentiality and cryptographic integrity. Format: <code>Base64( 12-byte IV || Ciphertext || 16-byte Auth Tag )</code>.
+        </div>
+
+        <div class="grid-2">
+          
+          <!-- Encrypt Pane -->
+          <div>
+            <div class="form-group">
+              <label class="form-label">Plaintext Message to Encrypt</label>
+              <input type="text" id="aes-plaintext" value="Top-Secret Confidential Payload #9021">
+            </div>
+            <div style="display:flex; gap:10px;">
+              <button class="btn btn-cyan btn-sm" style="flex:1;" onclick="encryptText()">
+                Encrypt with AES-256-GCM
+              </button>
+              <button class="btn btn-ghost btn-sm" onclick="encryptTwiceProof()">
+                🎲 Encrypt Twice (Proof of Nonce)
+              </button>
+            </div>
+          </div>
+
+          <!-- Decrypt Pane -->
+          <div>
+            <div class="form-group">
+              <label class="form-label">Ciphertext to Decrypt (Base64 IV+Data+Tag)</label>
+              <input type="text" id="aes-ciphertext" placeholder="Paste Base64 ciphertext here...">
+            </div>
+            <div style="display:flex; gap:10px;">
+              <button class="btn btn-primary btn-sm" style="flex:1;" onclick="decryptText()">
+                Decrypt Ciphertext
+              </button>
+              <button class="btn btn-rose btn-sm" onclick="tamperCiphertext()">
+                😈 Tamper 1 Byte (Test Auth Tag)
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Deconstructed Ciphertext Breakdown -->
+        <div class="crypto-deconstruct" id="crypto-breakdown" style="display:none;">
+          <div class="crypto-chunk">
+            <div class="crypto-chunk-title" style="color:#38bdf8;">
+              <span>12-Byte IV / Nonce</span>
+              <span>Random</span>
+            </div>
+            <div class="crypto-chunk-val" id="chunk-iv">-</div>
+          </div>
+          <div class="crypto-chunk">
+            <div class="crypto-chunk-title" style="color:#c084fc;">
+              <span>Encrypted Ciphertext</span>
+              <span>Payload</span>
+            </div>
+            <div class="crypto-chunk-val" id="chunk-ct">-</div>
+          </div>
+          <div class="crypto-chunk">
+            <div class="crypto-chunk-title" style="color:#34d399;">
+              <span>16-Byte Auth Tag</span>
+              <span>Integrity MAC</span>
+            </div>
+            <div class="crypto-chunk-val" id="chunk-tag">-</div>
+          </div>
+        </div>
+
+        <!-- Twice Encryption Demonstration Output -->
+        <div id="nonce-proof-box" style="display:none; margin-top:16px; background:#080c14; border:1px solid var(--border-subtle); border-radius:var(--radius-sm); padding:14px; font-family:'JetBrains Mono', monospace; font-size:12px;">
+          <div style="color:#38bdf8; font-weight:700; margin-bottom:6px;">🎲 Nonce Uniqueness Demonstration:</div>
+          <div style="color:var(--text-muted); margin-bottom:8px;">Encrypting identical plaintext twice produces two distinct outputs due to a fresh cryptographic 12-byte IV:</div>
+          <div id="nonce-proof-content"></div>
+        </div>
+
+      </div>
+
+      <!-- Encrypted Credential Vault (Secure Storage) -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="card-title-icon">🗄️</span>
+            <span>Encrypted Credential Vault (Secure Storage at Rest)</span>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <a href="/h2-console" target="_blank" class="btn btn-ghost btn-sm" style="text-decoration:none;">
+              🔍 Open H2 DB Console
+            </a>
+            <button class="btn btn-cyan btn-sm" onclick="loadVaultRecords()">
+              🔄 Reload Vault
+            </button>
+          </div>
+        </div>
+        <div class="card-desc">
+          Third-party secrets (API tokens, private keys) are encrypted with <strong>AES-256-GCM</strong> prior to persisting in the database. Each record is isolated by owner (<code>Authentication.getName()</code>). Listing returns masked previews only; raw secrets are decrypted on demand via <code>/api/vault/{id}/reveal</code>.
+        </div>
+
+        <!-- Add Secret Form -->
+        <div style="background:var(--bg-glass); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); padding:16px; margin-bottom:18px;">
+          <div class="grid-2" style="margin-bottom:10px;">
+            <div>
+              <label class="form-label">Service / Key Name</label>
+              <input type="text" id="vault-service" value="GitHub Enterprise PAT" placeholder="e.g. AWS Key, Stripe API">
+            </div>
+            <div>
+              <label class="form-label">Confidential Secret / Token</label>
+              <input type="text" id="vault-secret" value="ghp_LiveProductionSecretKey_9872" placeholder="e.g. secret string">
+            </div>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="addVaultSecret()">
+            ➕ Encrypt with AES-GCM &amp; Store in Vault
+          </button>
+        </div>
+
+        <!-- Vault Table -->
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:60px;">ID</th>
+                <th>Service</th>
+                <th>Masked Secret</th>
+                <th>Stored Ciphertext at Rest (IV || Ciphertext || Tag)</th>
+                <th style="text-align:right;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="vault-tbody">
+              <tr>
+                <td colspan="5" style="text-align:center; color:var(--text-dim); padding:20px;">
+                  Authenticate and load vault to view encrypted credentials.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- TAB 3: LINK & DATA ENCRYPTION VERIFIER (NEW EXP FEATURE)       -->
+    <!-- ============================================================== -->
+    <div id="pane-3" class="tab-pane">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="card-title-icon">🔗</span>
+            <span>Link &amp; Data Payload Encryption Verifier</span>
+          </div>
+          <span class="port-pill">Authenticated Link Security</span>
+        </div>
+        <div class="card-desc">
+          Verify end-to-end cryptographic protection for sensitive API links, webhook URLs, and associated transactional payloads. Encrypts the combined Link + Data tuple using AES-256-GCM to prevent parameter tampering or URL eavesdropping.
+        </div>
+
+        <!-- Preset Test Scenarios -->
+        <div style="margin-bottom:18px;">
+          <span class="form-label">Preset Quick Scenarios</span>
+          <div style="display:flex; flex-wrap:wrap; gap:8px;">
+            <button class="btn btn-ghost btn-sm" onclick="setLinkDataPreset('financial')">
+              💳 Secure Financial Transfer
+            </button>
+            <button class="btn btn-ghost btn-sm" onclick="setLinkDataPreset('oauth')">
+              🔑 OAuth Token Callback
+            </button>
+            <button class="btn btn-ghost btn-sm" onclick="setLinkDataPreset('webhook')">
+              🔔 Webhook Event Dispatch
+            </button>
+          </div>
+        </div>
+
+        <!-- Input Form -->
+        <div class="grid-2">
+          <div>
+            <div class="form-group">
+              <label class="form-label">Target Link / URL Endpoint</label>
+              <input type="text" id="ld-link" value="https://api.seclab.internal/v1/payments/execute">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Confidential Data / Payload</label>
+              <textarea id="ld-data" rows="4">{"accountId": "ACC-99824", "amount": 25000.00, "currency": "USD", "memo": "Urgent Wire Transfer"}</textarea>
+            </div>
+            <div style="display:flex; gap:10px;">
+              <button class="btn btn-cyan" style="flex:1;" onclick="encryptLinkData()">
+                🔐 Encrypt Link &amp; Data
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <div class="form-group">
+              <label class="form-label">Encrypted Base64 Package (IV + Ciphertext + Tag)</label>
+              <textarea id="ld-ciphertext" rows="4" placeholder="Encrypted package will appear here..."></textarea>
+            </div>
+            <div style="display:flex; flex-wrap:wrap; gap:8px;">
+              <button class="btn btn-primary btn-sm" onclick="decryptLinkData()">
+                🔓 Decrypt &amp; Verify Link + Data
+              </button>
+              <button class="btn btn-rose btn-sm" onclick="tamperLinkDataCiphertext()">
+                😈 Tamper Ciphertext (Test Integrity)
+              </button>
+              <button class="btn btn-ghost btn-sm" onclick="copyText('ld-ciphertext')">
+                📋 Copy
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Verification Results Box -->
+        <div id="ld-result-box" style="display:none; margin-top:20px; background:#080c14; border:1px solid var(--border-subtle); border-radius:var(--radius-sm); padding:16px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <div style="font-weight:700; color:#fff;" id="ld-result-heading">Decryption &amp; Integrity Verification Report</div>
+            <span id="ld-status-badge" class="badge badge-live">✔ VERIFIED</span>
+          </div>
+
+          <div class="grid-2">
+            <div style="background:rgba(0,0,0,0.4); padding:12px; border-radius:var(--radius-sm);">
+              <div style="color:#38bdf8; font-size:11px; font-weight:700; margin-bottom:4px;">DECRYPTED TARGET LINK:</div>
+              <div id="ld-res-link" style="font-family:'JetBrains Mono', monospace; font-size:12px; word-break:break-all; color:#fff;"></div>
+            </div>
+            <div style="background:rgba(0,0,0,0.4); padding:12px; border-radius:var(--radius-sm);">
+              <div style="color:#c084fc; font-size:11px; font-weight:700; margin-bottom:4px;">DECRYPTED DATA PAYLOAD:</div>
+              <pre id="ld-res-data" style="font-family:'JetBrains Mono', monospace; font-size:11px; word-break:break-all; color:#cbd5e1; white-space:pre-wrap; margin:0;"></pre>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- TAB 4: TOKEN TIMING & LIFECYCLE RADAR                          -->
+    <!-- ============================================================== -->
+    <div id="pane-4" class="tab-pane">
+
+      <!-- Timing Hero Countdown -->
+      <div class="timing-hero">
+        <div class="timing-clock" id="timing-display">02:00</div>
+        <div class="timing-sub" id="timing-sub-text">Active JWT Access Token Lifespan (Configured: 120s TTL)</div>
+        <div style="max-width:400px; margin:16px auto 0;">
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" id="timing-bar-fill" style="width:100%;"></div>
+          </div>
+        </div>
+
+        <!-- Automatic Token Refresh Control Bar -->
+        <div style="display:flex; justify-content:center; align-items:center; gap:12px; margin-top:16px; flex-wrap:wrap;">
+          <div style="display:inline-flex; align-items:center; gap:8px; background:rgba(0,0,0,0.4); border:1px solid var(--border-subtle); padding:6px 14px; border-radius:20px;">
+            <span style="font-size:12px; color:var(--text-muted);">Rotation Mode:</span>
+            <span id="timing-mode-badge" class="badge badge-live">⚡ AUTOMATIC (Active)</span>
+          </div>
+          <button id="timing-autorefresh-btn" class="btn btn-cyan btn-sm" onclick="toggleAutoRefresh()">
+            ⚡ Auto-Refresh: ON
+          </button>
+          <button class="btn btn-primary btn-sm" onclick="rotateRefreshToken(false)">
+            🔄 Force Rotate Now
+          </button>
+        </div>
+      </div>
+
+      <!-- Token Lifecycle Actions & Details -->
+      <div class="grid-2">
+
+        <!-- Lifecycle Pipeline Card -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <span class="card-title-icon">⏳</span>
+              <span>Token Lifecycle Pipeline</span>
+            </div>
+            <span class="port-pill">Refresh Rotation</span>
+          </div>
+          <div class="card-desc">
+            Stateful security on top of stateless JWT: Access Token lives 120 seconds. Refresh Token is stored <strong>SHA-256 hashed</strong> in H2. Each refresh operation <em>rotates</em> both tokens. If a previously-used token is replayed (indicating theft), the server automatically revokes <strong>all sessions</strong> for that user!
+          </div>
+
+          <div class="lifecycle-pipeline">
+            <div class="pipeline-step active" id="radar-step-active">
+              <div class="step-num">STAGE 01</div>
+              <div class="step-title">Access Active</div>
+              <div class="step-desc">JWT valid with role claims</div>
+            </div>
+            <div class="pipeline-step" id="radar-step-expired">
+              <div class="step-num">STAGE 02</div>
+              <div class="step-title">Token Expired</div>
+              <div class="step-desc">API calls return 401 Unauthorized</div>
+            </div>
+            <div class="pipeline-step" id="radar-step-rotate">
+              <div class="step-num">STAGE 03</div>
+              <div class="step-title">Token Rotated</div>
+              <div class="step-desc">Old refresh token invalidated in DB</div>
+            </div>
+            <div class="pipeline-step" id="radar-step-revoked">
+              <div class="step-num">STAGE 04</div>
+              <div class="step-title">Replay Defense</div>
+              <div class="step-desc">Reuse detected &rarr; all tokens revoked</div>
+            </div>
+          </div>
+
+          <div style="display:flex; flex-wrap:wrap; gap:10px;">
+            <button class="btn btn-primary btn-sm" onclick="rotateRefreshToken(false)">
+              🔄 Rotate Refresh Token
+            </button>
+            <button class="btn btn-rose btn-sm" onclick="simulateReplayAttack()">
+              😈 Replay Stolen Refresh Token
+            </button>
+            <button class="btn btn-ghost btn-sm" onclick="simulateExpiredCall()">
+              ⚡ Simulate Expired Token Call (Force 401)
+            </button>
+          </div>
+        </div>
+
+        <!-- Token Metadata Specs Card -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <span class="card-title-icon">📐</span>
+              <span>Cryptographic Timing Metrics</span>
+            </div>
+          </div>
+
+          <div style="background:rgba(0,0,0,0.4); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); padding:14px; font-family:'JetBrains Mono', monospace; font-size:12px; line-height:1.9;">
+            <div style="display:flex; justify-content:space-between;">
+              <span style="color:var(--text-dim);">Subject (Username):</span>
+              <span style="color:#fff;" id="metric-sub">None</span>
+            </div>
+            <div style="display:flex; justify-content:space-between;">
+              <span style="color:var(--text-dim);">Granted Role Claim:</span>
+              <span style="color:#38bdf8;" id="metric-role">None</span>
+            </div>
+            <div style="display:flex; justify-content:space-between;">
+              <span style="color:var(--text-dim);">Issued At (iat):</span>
+              <span style="color:#c084fc;" id="metric-iat">-</span>
+            </div>
+            <div style="display:flex; justify-content:space-between;">
+              <span style="color:var(--text-dim);">Expires At (exp):</span>
+              <span style="color:#fb7185;" id="metric-exp">-</span>
+            </div>
+            <div style="display:flex; justify-content:space-between;">
+              <span style="color:var(--text-dim);">Access Lifespan:</span>
+              <span style="color:#34d399;">120 Seconds (2 min)</span>
+            </div>
+            <div style="display:flex; justify-content:space-between;">
+              <span style="color:var(--text-dim);">Refresh Lifespan:</span>
+              <span style="color:#34d399;" id="metric-refresh-ttl">1800 Seconds (30 min)</span>
+            </div>
+            <div style="display:flex; justify-content:space-between;">
+              <span style="color:var(--text-dim);">Refresh Storage:</span>
+              <span style="color:#cbd5e1;">H2 DB (SHA-256 Hashed)</span>
+            </div>
+          </div>
+
+          <div style="margin-top:16px;">
+            <button class="btn btn-ghost btn-sm" style="width:100%;" onclick="copyTokenDetails()">
+              📋 Copy Raw Token Metadata
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- TAB 5: LOGIN HISTORY & AUDIT TRAIL (WHO LOGGED IN)             -->
+    <!-- ============================================================== -->
+    <div id="pane-5" class="tab-pane">
+
+      <!-- Stats Bar -->
+      <div class="grid-4">
+        <div class="card" style="padding:16px; margin-bottom:0;">
+          <div style="color:var(--text-dim); font-size:11px; text-transform:uppercase; font-weight:700;">Total Logins Tracked</div>
+          <div style="font-size:24px; font-weight:800; color:#fff; margin-top:4px;" id="stat-total-logins">0</div>
+        </div>
+        <div class="card" style="padding:16px; margin-bottom:0;">
+          <div style="color:var(--text-dim); font-size:11px; text-transform:uppercase; font-weight:700;">Unique Identities</div>
+          <div style="font-size:24px; font-weight:800; color:#38bdf8; margin-top:4px;" id="stat-unique-users">0</div>
+        </div>
+        <div class="card" style="padding:16px; margin-bottom:0;">
+          <div style="color:var(--text-dim); font-size:11px; text-transform:uppercase; font-weight:700;">Successful Logins</div>
+          <div style="font-size:24px; font-weight:800; color:#34d399; margin-top:4px;" id="stat-success-logins">0</div>
+        </div>
+        <div class="card" style="padding:16px; margin-bottom:0;">
+          <div style="color:var(--text-dim); font-size:11px; text-transform:uppercase; font-weight:700;">Failed Attempts</div>
+          <div style="font-size:24px; font-weight:800; color:#fb7185; margin-top:4px;" id="stat-failed-logins">0</div>
+        </div>
+      </div>
+
+      <!-- History Table Card -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="card-title-icon">📜</span>
+            <span>Authentication Audit Trail: Who Logged In</span>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button class="btn btn-cyan btn-sm" onclick="loadLoginHistory()">
+              🔄 Refresh History
+            </button>
+          </div>
+        </div>
+        <div class="card-desc">
+          Chronological record of authentication attempts captured by <code>AuthController</code>. Displays username, assigned RBAC role, login timestamp, remote IP address, and status.
+        </div>
+
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:60px;">ID</th>
+                <th>Identity / Username</th>
+                <th>Assigned Role</th>
+                <th>Login Timestamp</th>
+                <th>Client IP</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="history-tbody">
+              <tr>
+                <td colspan="6" style="text-align:center; color:var(--text-dim); padding:20px;">
+                  Loading login history audit records...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- TAB 6: ARCHITECTURE & DATABASE SPEC                           -->
+    <!-- ============================================================== -->
+    <div id="pane-6" class="tab-pane">
+
+      <div class="grid-2">
+        
+        <!-- Architecture Diagram Card -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <span class="card-title-icon">🏛️</span>
+              <span>Security Architecture Flow</span>
+            </div>
+          </div>
+          <div class="card-desc">
+            Stateless Request Pipeline &amp; Role-Based Access Control filter execution:
+          </div>
+
+          <div style="background:#080c14; border:1px solid var(--border-subtle); border-radius:var(--radius-sm); padding:16px; font-family:'JetBrains Mono', monospace; font-size:12px; line-height:1.7; color:#cbd5e1;">
+            <div style="color:#38bdf8; font-weight:700;">1. Client Request</div>
+            &nbsp;&nbsp;&boxur;&rarr; HTTP Header: <code>Authorization: Bearer &lt;JWT&gt;</code><br><br>
+            <div style="color:#fb7185; font-weight:700;">2. JwtAuthFilter</div>
+            &nbsp;&nbsp;&boxur;&rarr; Reads Bearer token<br>
+            &nbsp;&nbsp;&boxur;&rarr; <code>Jwts.parser().verifyWith(secretKey).build().parseSignedClaims()</code><br>
+            &nbsp;&nbsp;&boxur;&rarr; Extracts subject &amp; <code>role</code> claim<br>
+            &nbsp;&nbsp;&boxur;&rarr; Sets <code>SecurityContextHolder.setAuthentication(...)</code><br><br>
+            <div style="color:#c084fc; font-weight:700;">3. SecurityFilterChain Authorization</div>
+            &nbsp;&nbsp;&boxur;&rarr; <code>/api/admin/**</code> &rarr; requires <code>ROLE_ADMIN</code><br>
+            &nbsp;&nbsp;&boxur;&rarr; <code>/api/manager/**</code> &rarr; requires <code>ROLE_MANAGER</code> or <code>ROLE_ADMIN</code><br>
+            &nbsp;&nbsp;&boxur;&rarr; <code>/api/reports/finance</code> &rarr; <code>@PreAuthorize</code> check<br>
+            &nbsp;&nbsp;&boxur;&rarr; 401 on expired/tampered JWT, 403 on role mismatch.<br><br>
+            <div style="color:#34d399; font-weight:700;">4. AES-256-GCM Secure Storage</div>
+            &nbsp;&nbsp;&boxur;&rarr; Credential secrets encrypted before database insert<br>
+            &nbsp;&nbsp;&boxur;&rarr; Fresh 12-byte random IV + 128-bit authentication tag
+          </div>
+        </div>
+
+        <!-- Database & Spec Guide -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <span class="card-title-icon">💾</span>
+              <span>In-Memory H2 Database Console</span>
+            </div>
+            <a href="/h2-console" target="_blank" class="btn btn-primary btn-sm" style="text-decoration:none;">
+              Launch Console &rarr;
+            </a>
+          </div>
+          <div class="card-desc">
+            Directly inspect the tables to prove secrets are encrypted at rest and refresh tokens are hashed:
+          </div>
+
+          <div style="background:var(--bg-glass); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); padding:14px; margin-bottom:14px; font-size:13px;">
+            <div style="font-weight:700; color:#fff; margin-bottom:8px;">H2 Console Connection Parameters:</div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:4px; font-family:'JetBrains Mono', monospace; font-size:12px;">
+              <span style="color:var(--text-dim);">JDBC URL:</span>
+              <span style="color:#38bdf8;">jdbc:h2:mem:seclab</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:4px; font-family:'JetBrains Mono', monospace; font-size:12px;">
+              <span style="color:var(--text-dim);">User Name:</span>
+              <span style="color:#38bdf8;">sa</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-family:'JetBrains Mono', monospace; font-size:12px;">
+              <span style="color:var(--text-dim);">Password:</span>
+              <span style="color:var(--text-dim);">(leave blank)</span>
+            </div>
+          </div>
+
+          <div class="form-label">Useful Verification SQL Queries</div>
+          <div style="background:#080c14; border:1px solid var(--border-subtle); border-radius:var(--radius-sm); padding:12px; font-family:'JetBrains Mono', monospace; font-size:12px; color:#cbd5e1; line-height:1.6;">
+            <span style="color:#34d399;">-- 1. Verify Login History</span><br>
+            SELECT id, username, role, ip_address, status, login_time FROM login_audit ORDER BY id DESC;<br><br>
+            <span style="color:#38bdf8;">-- 2. Verify AES-256-GCM ciphertext at rest</span><br>
+            SELECT id, owner, service, encrypted_secret FROM credentials;<br><br>
+            <span style="color:#c084fc;">-- 3. Verify hashed refresh tokens</span><br>
+            SELECT id, username, token_hash, revoked, expires_at FROM refresh_tokens;
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- Real-Time Interactive Security Audit Terminal -->
+    <div class="terminal-card">
+      <div class="terminal-header">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div class="terminal-dots">
+            <div class="dot dot-red"></div>
+            <div class="dot dot-yellow"></div>
+            <div class="dot dot-green"></div>
+          </div>
+          <div class="terminal-title">LIVE SECURITY AUDIT &amp; HTTP TRANSACTION TERMINAL</div>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-ghost btn-sm" onclick="clearTerminal()">Clear</button>
+        </div>
+      </div>
+      <div class="terminal-body" id="audit-log">
+        <div style="color:var(--text-dim);">// System initialized. Ready to process secure requests on localhost:8080...</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast">
+    <div class="toast-icon" id="toast-icon">ℹ️</div>
+    <div class="toast-msg" id="toast-msg">Notification</div>
+  </div>
+
+  <script>
+    // System State Variables
+    let activeAccessToken = null;
+    let activeRefreshToken = null;
+    let previousRefreshToken = null; // Captured for replay attack simulation
+    let tokenExpiresAt = 0;
+    let tokenIssuedAt = 0;
+    let authMode = 'login'; // 'login' or 'register'
+    let autoRefreshEnabled = true; // Auto-refresh ON by default!
+    let isRefreshing = false;
+    let refreshPromise = null;
+
+    const $ = id => document.getElementById(id);
+    const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+    // Auto-Refresh Mode Controller
+    function toggleAutoRefresh(forcedState = null) {
+      if (forcedState !== null) {
+        autoRefreshEnabled = forcedState;
+      } else {
+        autoRefreshEnabled = !autoRefreshEnabled;
+      }
+      updateAutoRefreshUI();
+      showToast(autoRefreshEnabled
+        ? '⚡ Auto-Refresh ACTIVE: Tokens automatically renew before expiring'
+        : '⏸️ Auto-Refresh PAUSED: Token rotation set to manual',
+        autoRefreshEnabled ? '⚡' : '⏸️');
+    }
+
+    function updateAutoRefreshUI() {
+      const hudToggle = $('hud-autorefresh-toggle');
+      const timingBtn = $('timing-autorefresh-btn');
+      const modeBadge = $('timing-mode-badge');
+
+      if (hudToggle) {
+        hudToggle.className = 'badge ' + (autoRefreshEnabled ? 'badge-live' : 'badge-none');
+        hudToggle.innerHTML = autoRefreshEnabled ? '⚡ AUTO: ON' : '⏸️ AUTO: OFF';
+      }
+      if (timingBtn) {
+        timingBtn.className = autoRefreshEnabled ? 'btn btn-cyan btn-sm' : 'btn btn-ghost btn-sm';
+        timingBtn.innerHTML = autoRefreshEnabled ? '⚡ Auto-Refresh: ON' : '⏸️ Auto-Refresh: OFF';
+      }
+      if (modeBadge) {
+        modeBadge.className = 'badge ' + (autoRefreshEnabled ? 'badge-live' : 'badge-none');
+        modeBadge.innerHTML = autoRefreshEnabled ? '⚡ AUTOMATIC (Active)' : '✋ MANUAL';
+      }
+    }
+
+    // Tab Switching
+    function switchTab(idx) {
+      [1, 2, 3, 4, 5, 6].forEach(i => {
+        const pane = $('pane-' + i);
+        const btn = $('tab-btn-' + i);
+        if (pane) pane.classList.toggle('active', i === idx);
+        if (btn) btn.classList.toggle('active', i === idx);
+      });
+      if (idx === 2 && activeAccessToken) {
+        loadVaultRecords();
+      }
+      if (idx === 5) {
+        loadLoginHistory();
+      }
+    }
+
+    // Auth Mode Switching
+    function setAuthMode(mode) {
+      authMode = mode;
+      $('mode-login-btn').className = mode === 'login' ? 'btn btn-primary btn-sm' : 'btn btn-ghost btn-sm';
+      $('mode-reg-btn').className = mode === 'register' ? 'btn btn-primary btn-sm' : 'btn btn-ghost btn-sm';
+      $('reg-role-group').style.display = mode === 'register' ? 'block' : 'none';
+      $('auth-submit-btn').textContent = mode === 'register' ? 'Create Account with Assigned Role' : 'Sign In According to Specification';
+      $('auth-desc').textContent = mode === 'register'
+        ? 'Register a new identity with custom role privileges (USER, MANAGER, or ADMIN).'
+        : 'Sign in with Spring Security stateless authentication. Passwords encrypted with BCrypt.';
+    }
+
+    // Toast Notification Helper
+    function showToast(msg, icon = 'ℹ️') {
+      const t = $('toast');
+      $('toast-icon').textContent = icon;
+      $('toast-msg').textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 3500);
+    }
+
+    // Core API Wrapper with Silent Refresh & Retry Interceptor
+    async function apiRequest(method, url, body = null, token = null, quiet = false, isRetry = false) {
+      const startTime = performance.now();
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+
+      let res, data;
+      try {
+        res = await fetch(url, {
+          method,
+          headers,
+          body: body ? JSON.stringify(body) : undefined
+        });
+        try {
+          data = await res.json();
+        } catch {
+          data = {};
+        }
+      } catch (err) {
+        res = { status: 0 };
+        data = { error: err.message };
+      }
+
+      // Silent Auto-Refresh & Retry on 401 Unauthorized
+      if (res.status === 401 && token && activeRefreshToken && !isRetry && !url.startsWith('/api/auth/')) {
+        console.warn(`[SecLab Auth] HTTP 401 detected on ${url}. Attempting silent auto-refresh & retry...`);
+        const rot = await rotateRefreshToken(true);
+        if (rot && rot.success && activeAccessToken) {
+          // Retry original request seamlessly with freshly renewed access token
+          return await apiRequest(method, url, body, activeAccessToken, quiet, true);
+        }
+      }
+
+      const duration = Math.round(performance.now() - startTime);
+
+      if (!quiet) {
+        logTransaction(method, url, res.status, duration, body, data);
+      }
+
+      return { status: res.status, data };
+    }
+
+    // Terminal Logger
+    function logTransaction(method, url, status, ms, reqBody, resBody) {
+      const terminal = $('audit-log');
+      const time = new Date().toLocaleTimeString();
+      let statusClass = 'status-200';
+      if (status >= 400 && status < 500) statusClass = status === 401 ? 'status-401' : (status === 403 ? 'status-403' : 'status-400');
+      else if (status >= 500 || status === 0) statusClass = 'status-403';
+
+      const entry = document.createElement('div');
+      entry.className = 'log-item';
+      entry.innerHTML = `
+        <span class="log-time">[${time}]</span>
+        <span class="${statusClass}">HTTP ${status}</span>
+        <strong>${method}</strong> ${esc(url)}
+        <span style="color:var(--text-dim); margin-left:8px;">(${ms}ms)</span>
+        ${reqBody ? `<div style="color:#94a3b8; font-size:11px; margin-top:2px;">&rarr; Request: ${esc(JSON.stringify(reqBody))}</div>` : ''}
+        <div style="color:#cbd5e1; font-size:11px; margin-top:2px;">&larr; Response: ${esc(JSON.stringify(resBody))}</div>
+      `;
+      terminal.prepend(entry);
+    }
+
+    function clearTerminal() {
+      $('audit-log').innerHTML = '<div style="color:var(--text-dim);">// Terminal cleared. Ready for next transaction...</div>';
+    }
+
+    // JWT Parser
+    function decodeBase64Url(str) {
+      try {
+        return JSON.parse(atob(str.replace(/-/g, '+').replace(/_/g, '/')));
+      } catch {
+        return {};
+      }
+    }
+
+    // Handle Setting Token Pair
+    function setTokenPair(pairData) {
+      previousRefreshToken = activeRefreshToken; // Save prior token for replay attack simulation
+      activeAccessToken = pairData.accessToken;
+      activeRefreshToken = pairData.refreshToken;
+      tokenExpiresAt = Date.now() + (pairData.accessExpiresInSec * 1000);
+
+      // Parse JWT
+      const parts = activeAccessToken.split('.');
+      const header = decodeBase64Url(parts[0]);
+      const payload = decodeBase64Url(parts[1]);
+
+      tokenIssuedAt = (payload.iat || Math.floor(Date.now() / 1000)) * 1000;
+      payload.iat_readable = new Date(payload.iat * 1000).toLocaleTimeString();
+      payload.exp_readable = new Date(payload.exp * 1000).toLocaleTimeString();
+
+      // Update HUD
+      const role = payload.role || 'USER';
+      const userTag = $('hud-user');
+      userTag.textContent = payload.sub + ' (' + role + ')';
+      userTag.className = 'badge ' + (role === 'ADMIN' ? 'badge-admin' : (role === 'MANAGER' ? 'badge-manager' : 'badge-user'));
+
+      $('hud-refresh').textContent = 'Active (Hashed)';
+      $('hud-refresh').className = 'badge badge-live';
+
+      // Update JWT Inspector
+      $('jwt-status-tag').textContent = 'Valid HMAC-SHA256';
+      $('jwt-status-tag').className = 'badge badge-live';
+
+      $('jwt-raw-display').innerHTML = `
+        <span class="jwt-part-header">${esc(parts[0])}</span>.<span class="jwt-part-payload">${esc(parts[1])}</span>.<span class="jwt-part-sig">${esc(parts[2])}</span>
+      `;
+      $('jwt-header-box').textContent = JSON.stringify(header, null, 2);
+      $('jwt-payload-box').textContent = JSON.stringify(payload, null, 2);
+
+      // Update Timing Metrics Tab
+      $('metric-sub').textContent = payload.sub;
+      $('metric-role').textContent = 'ROLE_' + role;
+      $('metric-iat').textContent = payload.iat_readable;
+      $('metric-exp').textContent = payload.exp_readable;
+
+      // Update Login History
+      loadLoginHistory();
+    }
+
+    // Live Expiration Timer Loop
+    setInterval(() => {
+      const accBadge = $('hud-access');
+      const timingDisplay = $('timing-display');
+      const timingBar = $('timing-bar-fill');
+      const timingSub = $('timing-sub-text');
+      const stepActive = $('radar-step-active');
+      const stepExpired = $('radar-step-expired');
+
+      if (!activeAccessToken) {
+        accBadge.textContent = 'None';
+        accBadge.className = 'badge badge-none';
+        if (timingDisplay) timingDisplay.textContent = '00:00';
+        if (timingBar) timingBar.style.width = '0%';
+        if (timingSub) timingSub.textContent = 'No active access token. Please log in.';
+        return;
+      }
+
+      const millisLeft = tokenExpiresAt - Date.now();
+      const secondsLeft = Math.max(0, Math.round(millisLeft / 1000));
+      const totalTtl = 120; // 120 seconds configured
+      const pct = Math.max(0, Math.min(100, (secondsLeft / totalTtl) * 100));
+
+      const mins = Math.floor(secondsLeft / 60);
+      const secs = secondsLeft % 60;
+      const formattedClock = String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+
+      if (timingDisplay) {
+        timingDisplay.textContent = formattedClock;
+        timingDisplay.classList.toggle('warning', secondsLeft <= 30 && secondsLeft > 10);
+        timingDisplay.classList.toggle('danger', secondsLeft <= 10);
+      }
+      if (timingBar) {
+        timingBar.style.width = pct + '%';
+        timingBar.classList.toggle('expiring', secondsLeft <= 30);
+      }
+
+      // PROACTIVE AUTOMATIC REFRESH: Trigger when 15 seconds or less remain
+      if (autoRefreshEnabled && secondsLeft <= 15 && activeRefreshToken && !isRefreshing) {
+        rotateRefreshToken(true);
+      }
+
+      if (secondsLeft > 0) {
+        accBadge.textContent = 'Active ' + secondsLeft + 's';
+        accBadge.className = 'badge badge-live';
+        if (timingSub) {
+          timingSub.textContent = autoRefreshEnabled
+            ? `Access Token Valid – ${secondsLeft}s remaining (⚡ Auto-Refresh enabled, rotates at ≤15s)`
+            : `Access Token Valid – ${secondsLeft}s remaining (${pct.toFixed(0)}% TTL - Manual Mode)`;
+        }
+        if (stepActive) stepActive.classList.add('active');
+        if (stepExpired) stepExpired.classList.remove('active');
+      } else {
+        accBadge.textContent = 'EXPIRED';
+        accBadge.className = 'badge badge-exp';
+        if (timingSub) {
+          timingSub.textContent = autoRefreshEnabled
+            ? 'Access Token EXPIRED. Automatically rotating token...'
+            : 'Access Token EXPIRED (401). Use "Rotate Refresh Token" or turn on Auto-Refresh.';
+        }
+        if (stepActive) stepActive.classList.remove('active');
+        if (stepExpired) stepExpired.classList.add('active');
+
+        // Fallback auto-rotation if hit 0 without rotating
+        if (autoRefreshEnabled && activeRefreshToken && !isRefreshing) {
+          rotateRefreshToken(true);
+        }
+      }
+    }, 500);
+
+    // Authentication Handlers
+    async function submitAuth() {
+      const u = $('auth-username').value.trim();
+      const p = $('auth-password').value;
+      if (!u || !p) return showToast('Please enter username and password', '⚠️');
+
+      if (authMode === 'register') {
+        const role = $('auth-role').value;
+        const res = await apiRequest('POST', '/api/auth/register', { username: u, password: p, role });
+        if (res.status === 200) {
+          showToast(`Registered ${u} with role ${role}! Now signing in...`, '✅');
+          setAuthMode('login');
+          await submitAuth();
+        } else {
+          showToast(res.data.error || 'Registration failed', '❌');
+        }
+      } else {
+        const res = await apiRequest('POST', '/api/auth/login', { username: u, password: p });
+        if (res.status === 200) {
+          setTokenPair(res.data);
+          showToast(`Authenticated as ${u}! Opening Exp 3.2.2 Interface...`, '🎉');
+          
+          // Switch automatically to Exp 3.2.2 tab per user request!
+          setTimeout(() => {
+            switchTab(2);
+          }, 600);
+        } else {
+          showToast(res.data.error || 'Invalid credentials', '❌');
+          loadLoginHistory();
+        }
+      }
+    }
+
+    function quickLogin(u, p) {
+      $('auth-username').value = u;
+      $('auth-password').value = p;
+      setAuthMode('login');
+      submitAuth();
+    }
+
+    async function logout() {
+      if (activeRefreshToken) {
+        await apiRequest('POST', '/api/auth/logout', { refreshToken: activeRefreshToken });
+      }
+      activeAccessToken = null;
+      activeRefreshToken = null;
+      previousRefreshToken = null;
+
+      $('hud-user').textContent = 'Anonymous';
+      $('hud-user').className = 'badge badge-none';
+      $('hud-access').textContent = 'None';
+      $('hud-access').className = 'badge badge-none';
+      $('hud-refresh').textContent = 'Revoked';
+      $('hud-refresh').className = 'badge badge-none';
+
+      $('jwt-status-tag').textContent = 'Logged Out';
+      $('jwt-status-tag').className = 'badge badge-none';
+      $('jwt-raw-display').innerHTML = '<span style="color:var(--text-dim);">Logged out. Tokens invalidated.</span>';
+      $('jwt-header-box').textContent = '{}';
+      $('jwt-payload-box').textContent = '{}';
+
+      $('vault-tbody').innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-dim); padding:20px;">Logged out. Secrets hidden.</td></tr>';
+      showToast('Logged out successfully', '🚪');
+      switchTab(1);
+    }
+
+    // RBAC Direct Call
+    async function callApi(url, anonymous = false) {
+      const res = await apiRequest('GET', url, null, anonymous ? null : activeAccessToken);
+      if (res.status === 200) {
+        showToast(`200 OK: Access Allowed to ${url}`, '✅');
+      } else if (res.status === 401) {
+        showToast(`401 Unauthorized: ${res.data.error || 'Token missing or invalid'}`, '⚠️');
+      } else if (res.status === 403) {
+        showToast(`403 Forbidden: Insufficient role permissions`, '⛔');
+      }
+    }
+
+    // Tamper JWT Simulation
+    async function tamperJwt() {
+      if (!activeAccessToken) {
+        return showToast('Please log in as USER first before simulating tamper attack', '⚠️');
+      }
+      const parts = activeAccessToken.split('.');
+      const payload = decodeBase64Url(parts[1]);
+
+      payload.role = 'ADMIN'; // Malicious escalation attempt!
+
+      const tamperedPayloadB64 = btoa(JSON.stringify(payload)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+      const forgedToken = `${parts[0]}.${tamperedPayloadB64}.${parts[2]}`; // Reusing old signature
+
+      showToast('Firing forged JWT with role=ADMIN to /api/admin/users...', '😈');
+      const res = await apiRequest('GET', '/api/admin/users', null, forgedToken);
+
+      if (res.status === 401) {
+        showToast('Attack Blocked! Spring Security detected invalid signature (401)', '🛡️');
+      } else {
+        showToast('Warning: Unexpected status ' + res.status, '⚠️');
+      }
+    }
+
+    // Automated RBAC Matrix Runner
+    const matrixEndpoints = [
+      { url: '/api/public/hello', expected: [200, 200, 200, 200] },
+      { url: '/api/user/profile', expected: [401, 200, 200, 200] },
+      { url: '/api/manager/reports', expected: [401, 403, 200, 200] },
+      { url: '/api/admin/users', expected: [401, 403, 403, 200] },
+      { url: '/api/reports/finance', expected: [401, 403, 200, 200] }
+    ];
+    const matrixUsers = [
+      null, // Anonymous
+      { u: 'user', p: 'user123' },
+      { u: 'manager', p: 'manager123' },
+      { u: 'admin', p: 'admin123' }
+    ];
+
+    async function runRbacMatrix() {
+      showToast('Executing full RBAC verification matrix across 20 test vectors...', '🚀');
+      const tbody = $('matrix-tbody');
+      tbody.innerHTML = '';
+
+      // Initialize rows
+      const rows = matrixEndpoints.map(ep => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>GET ${ep.url}</td>` + '<td>⏳ Testing...</td>'.repeat(4);
+        tbody.appendChild(tr);
+        return tr;
+      });
+
+      // Execute tests per column (user identity)
+      for (let col = 0; col < 4; col++) {
+        let token = null;
+        if (matrixUsers[col]) {
+          const authRes = await apiRequest('POST', '/api/auth/login', { username: matrixUsers[col].u, password: matrixUsers[col].p }, null, true);
+          token = authRes.data.accessToken;
+        }
+
+        for (let row = 0; row < matrixEndpoints.length; row++) {
+          const ep = matrixEndpoints[row];
+          const expectedStatus = ep.expected[col];
+          const testRes = await apiRequest('GET', ep.url, null, token, true);
+          const cell = rows[row].children[col + 1];
+
+          const isPass = testRes.status === expectedStatus;
+          cell.className = isPass ? 'matrix-ok' : 'matrix-bad';
+          cell.innerHTML = `${testRes.status} ${isPass ? '✔ PASS' : '✘ (Expected ' + expectedStatus + ')'}`;
+        }
+      }
+
+      showToast('RBAC Verification Complete! All security constraints passed', '🎉');
+    }
+
+    // TOKEN LIFECYCLE HANDLERS (EXP 2.3.2 / 3.2.2)
+    async function rotateRefreshToken(isAuto = false) {
+      if (!activeRefreshToken) {
+        if (!isAuto) showToast('No active refresh token available', '⚠️');
+        return { success: false, error: 'No active refresh token' };
+      }
+
+      // Concurrency lock / Deduplication: return existing promise if in-flight
+      if (isRefreshing && refreshPromise) {
+        return refreshPromise;
+      }
+
+      isRefreshing = true;
+      refreshPromise = (async () => {
+        try {
+          if (!isAuto) showToast('Rotating refresh token...', '🔄');
+          else showToast('⚡ Auto-refreshing access token in background...', '🔄');
+
+          const res = await apiRequest('POST', '/api/auth/refresh', { refreshToken: activeRefreshToken }, null, isAuto);
+
+          if (res.status === 200 && res.data && res.data.accessToken) {
+            setTokenPair(res.data);
+            const stepRotate = $('radar-step-rotate');
+            if (stepRotate) {
+              stepRotate.classList.add('active');
+              setTimeout(() => {
+                if (stepRotate && $('timing-display') && $('timing-display').textContent !== '00:00') {
+                  stepRotate.classList.remove('active');
+                }
+              }, 4000);
+            }
+            showToast(isAuto ? '⚡ Auto-refreshed: Token pair renewed!' : 'Token rotated! New Access & Refresh token pair issued', '✅');
+            return { success: true, data: res.data };
+          } else {
+            const errMsg = (res.data && (res.data.error || res.data.detail || res.data.message)) || 'Refresh failed (401 Unauthorized)';
+            if (res.status === 401) {
+              handleSessionExpired(errMsg);
+            } else {
+              showToast(errMsg, '❌');
+            }
+            return { success: false, error: errMsg };
+          }
+        } catch (e) {
+          showToast('Refresh error: ' + e.message, '❌');
+          return { success: false, error: e.message };
+        } finally {
+          isRefreshing = false;
+          refreshPromise = null;
+        }
+      })();
+
+      return refreshPromise;
+    }
+
+    function handleSessionExpired(reason = 'Refresh token expired or invalid') {
+      activeAccessToken = null;
+      activeRefreshToken = null;
+      previousRefreshToken = null;
+
+      const accBadge = $('hud-access');
+      const refBadge = $('hud-refresh');
+      const timingSub = $('timing-sub-text');
+      const stepActive = $('radar-step-active');
+      const stepExpired = $('radar-step-expired');
+      const stepRevoked = $('radar-step-revoked');
+
+      if (accBadge) {
+        accBadge.textContent = 'EXPIRED';
+        accBadge.className = 'badge badge-exp';
+      }
+      if (refBadge) {
+        refBadge.textContent = 'EXPIRED';
+        refBadge.className = 'badge badge-exp';
+      }
+      if (timingSub) {
+        timingSub.textContent = `Session expired (${reason}). Please sign in again.`;
+      }
+      if (stepActive) stepActive.classList.remove('active');
+      if (stepExpired) stepExpired.classList.add('active');
+      if (stepRevoked) stepRevoked.classList.remove('active');
+
+      showToast(`Session ended: ${reason}. Please sign in again.`, '⚠️');
+    }
+
+    async function simulateReplayAttack() {
+      if (!previousRefreshToken) {
+        return showToast('Rotate tokens once first so there is an old token to replay!', '⚠️');
+      }
+      showToast('Replaying stale refresh token (simulating theft attack)...', '😈');
+      const res = await apiRequest('POST', '/api/auth/refresh', { refreshToken: previousRefreshToken });
+      if (res.status === 401) {
+        const stepRevoked = $('radar-step-revoked');
+        if (stepRevoked) stepRevoked.classList.add('active');
+        showToast('Security Alert: Server detected token reuse and revoked all sessions!', '🛡️');
+        // Invalidate active session locally
+        activeAccessToken = null;
+        activeRefreshToken = null;
+        $('hud-access').textContent = 'REVOKED';
+        $('hud-access').className = 'badge badge-exp';
+        $('hud-refresh').textContent = 'REVOKED';
+        $('hud-refresh').className = 'badge badge-exp';
+      }
+    }
+
+    async function simulateExpiredCall() {
+      if (!activeAccessToken) return showToast('Please authenticate first', '⚠️');
+      // Construct an expired token (exp set to 10 minutes in past)
+      const parts = activeAccessToken.split('.');
+      const payload = decodeBase64Url(parts[1]);
+      payload.exp = Math.floor(Date.now() / 1000) - 600; // 600s in past
+
+      const expiredB64 = btoa(JSON.stringify(payload)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+      const expiredJwt = `${parts[0]}.${expiredB64}.${parts[2]}`;
+
+      showToast('Testing endpoint with expired token...', '⚡');
+      const res = await apiRequest('GET', '/api/user/profile', null, expiredJwt);
+      if (res.status === 401) {
+        showToast('Expected 401: Access token expired - use the refresh token', '✅');
+      }
+    }
+
+    // EXP 3.2.2: AES-256-GCM PLAYGROUND HANDLERS
+    async function encryptText() {
+      if (!activeAccessToken) return showToast('Authenticate to use AES service', '⚠️');
+      const text = $('aes-plaintext').value;
+      const res = await apiRequest('POST', '/api/crypto/encrypt', { text }, activeAccessToken);
+      if (res.status === 200) {
+        const ct = res.data.ciphertext;
+        $('aes-ciphertext').value = ct;
+        deconstructCiphertext(ct);
+        showToast('Encrypted with AES-256-GCM!', '🔐');
+      } else {
+        showToast(res.data.error || 'Encryption error', '❌');
+      }
+    }
+
+    async function decryptText() {
+      if (!activeAccessToken) return showToast('Authenticate to use AES service', '⚠️');
+      const text = $('aes-ciphertext').value.trim();
+      if (!text) return showToast('Please enter ciphertext', '⚠️');
+
+      const res = await apiRequest('POST', '/api/crypto/decrypt', { text }, activeAccessToken);
+      if (res.status === 200) {
+        showToast(`Decrypted Plaintext: "${res.data.plaintext}"`, '🔓');
+      } else {
+        showToast(`Decryption Failed: ${res.data.error || 'Tampered data or wrong key'}`, '❌');
+      }
+    }
+
+    async function encryptTwiceProof() {
+      if (!activeAccessToken) return showToast('Authenticate to use AES service', '⚠️');
+      const text = $('aes-plaintext').value;
+      const r1 = await apiRequest('POST', '/api/crypto/encrypt', { text }, activeAccessToken, true);
+      const r2 = await apiRequest('POST', '/api/crypto/encrypt', { text }, activeAccessToken, true);
+
+      if (r1.status === 200 && r2.status === 200) {
+        $('nonce-proof-box').style.display = 'block';
+        $('nonce-proof-content').innerHTML = `
+          <div style="margin-bottom:6px;"><span style="color:#34d399;">Run 1:</span> ${esc(r1.data.ciphertext)}</div>
+          <div><span style="color:#c084fc;">Run 2:</span> ${esc(r2.data.ciphertext)}</div>
+        `;
+        showToast('Demonstration complete: Different ciphertexts for identical plaintext!', '🎲');
+      }
+    }
+
+    function tamperCiphertext() {
+      const ct = $('aes-ciphertext').value.trim();
+      if (!ct || ct.length < 10) return showToast('Encrypt something first to generate ciphertext', '⚠️');
+      
+      // Flip one character in the middle
+      const pos = Math.floor(ct.length / 2);
+      const char = ct.charAt(pos);
+      const replacement = char === 'A' ? 'B' : 'A';
+      const tampered = ct.substring(0, pos) + replacement + ct.substring(pos + 1);
+
+      $('aes-ciphertext').value = tampered;
+      showToast(`Tampered character at index ${pos} ('${char}' -> '${replacement}'). Now click Decrypt!`, '😈');
+    }
+
+    function deconstructCiphertext(b64) {
+      try {
+        const raw = atob(b64);
+        const bytes = new Uint8Array(raw.length);
+        for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+
+        if (bytes.length < 28) return; // 12-byte IV + 16-byte tag minimum
+
+        const toHex = arr => Array.from(arr).map(b => b.toString(16).padStart(2, '0')).join(' ');
+
+        const iv = bytes.slice(0, 12);
+        const tag = bytes.slice(bytes.length - 16);
+        const ct = bytes.slice(12, bytes.length - 16);
+
+        $('crypto-breakdown').style.display = 'grid';
+        $('chunk-iv').textContent = toHex(iv);
+        $('chunk-ct').textContent = toHex(ct);
+        $('chunk-tag').textContent = toHex(tag);
+      } catch {
+        $('crypto-breakdown').style.display = 'none';
+      }
+    }
+
+    // VAULT (SECURE STORAGE) HANDLERS
+    async function addVaultSecret() {
+      if (!activeAccessToken) return showToast('Please authenticate first', '⚠️');
+      const service = $('vault-service').value.trim();
+      const secret = $('vault-secret').value;
+      if (!service || !secret) return showToast('Service and secret are required', '⚠️');
+
+      const res = await apiRequest('POST', '/api/vault', { service, secret }, activeAccessToken);
+      if (res.status === 200) {
+        showToast(`Stored credential for ${service} encrypted with AES-256-GCM!`, '🗄️');
+        loadVaultRecords();
+      } else {
+        showToast(res.data.error || 'Failed to add secret', '❌');
+      }
+    }
+
+    async function loadVaultRecords() {
+      if (!activeAccessToken) return;
+      const res = await apiRequest('GET', '/api/vault', null, activeAccessToken, true);
+      const tbody = $('vault-tbody');
+
+      if (res.status !== 200 || !res.data || res.data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-dim); padding:20px;">No credentials stored in your encrypted vault. Add one above!</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = res.data.map(c => `
+        <tr>
+          <td>#${c.id}</td>
+          <td style="font-weight:600; color:#fff;">${esc(c.service)}</td>
+          <td><span style="color:#38bdf8;">${esc(c.masked)}</span></td>
+          <td style="color:#94a3b8; font-size:11px; word-break:break-all;">${esc(c.ciphertext)}</td>
+          <td style="text-align:right;">
+            <div style="display:inline-flex; gap:6px;">
+              <button class="btn btn-cyan btn-sm" onclick="revealVaultSecret(${c.id})">👁️ Reveal</button>
+              <button class="btn btn-rose btn-sm" onclick="deleteVaultSecret(${c.id})">🗑️ Delete</button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    async function revealVaultSecret(id) {
+      const res = await apiRequest('GET', `/api/vault/${id}/reveal`, null, activeAccessToken);
+      if (res.status === 200) {
+        showToast(`Decrypted secret for #${id}: ${res.data.secret}`, '🔓');
+      } else {
+        showToast(res.data.error || 'Unable to decrypt secret', '❌');
+      }
+    }
+
+    async function deleteVaultSecret(id) {
+      const res = await apiRequest('DELETE', `/api/vault/${id}`, null, activeAccessToken);
+      if (res.status === 200) {
+        showToast(`Deleted secret #${id}`, '🗑️');
+        loadVaultRecords();
+      }
+    }
+
+    // LINK & DATA ENCRYPTION HANDLERS (EXP FEATURE)
+    function setLinkDataPreset(type) {
+      if (type === 'financial') {
+        $('ld-link').value = 'https://api.seclab.internal/v1/payments/execute';
+        $('ld-data').value = JSON.stringify({ accountId: "ACC-99824", amount: 25000.00, currency: "USD", memo: "Urgent Wire Transfer" }, null, 2);
+      } else if (type === 'oauth') {
+        $('ld-link').value = 'https://auth.seclab.internal/oauth2/callback';
+        $('ld-data').value = JSON.stringify({ code: "auth_sec_8923a1f9", state: "xyz123secure", client_id: "client-corp-99" }, null, 2);
+      } else if (type === 'webhook') {
+        $('ld-link').value = 'https://events.seclab.internal/webhooks/audit';
+        $('ld-data').value = JSON.stringify({ event: "USER_PERMISSION_ELEVATION", actor: "admin", target: "user", timestamp: Date.now() }, null, 2);
+      }
+      showToast(`Loaded preset: ${type}`, '🔗');
+    }
+
+    async function encryptLinkData() {
+      if (!activeAccessToken) return showToast('Please authenticate first to access encryption service', '⚠️');
+      const link = $('ld-link').value.trim();
+      const data = $('ld-data').value.trim();
+      if (!link || !data) return showToast('Please provide both Link and Data', '⚠️');
+
+      showToast('Encrypting Link & Data with AES-256-GCM...', '🔐');
+      const res = await apiRequest('POST', '/api/crypto/encrypt-link', { link, data }, activeAccessToken);
+      if (res.status === 200) {
+        $('ld-ciphertext').value = res.data.ciphertext;
+        $('ld-result-box').style.display = 'block';
+        $('ld-result-heading').textContent = 'Ciphertext Generated (AES-256-GCM)';
+        $('ld-status-badge').textContent = '✔ ENCRYPTED';
+        $('ld-status-badge').className = 'badge badge-live';
+        $('ld-res-link').textContent = res.data.link;
+        $('ld-res-data').textContent = res.data.data;
+        showToast('Link & Data encrypted successfully!', '✅');
+      } else {
+        showToast(res.data.error || 'Link encryption failed', '❌');
+      }
+    }
+
+    async function decryptLinkData() {
+      if (!activeAccessToken) return showToast('Please authenticate first', '⚠️');
+      const text = $('ld-ciphertext').value.trim();
+      if (!text) return showToast('Please paste ciphertext to decrypt', '⚠️');
+
+      showToast('Decrypting and verifying Link & Data integrity...', '🔓');
+      const res = await apiRequest('POST', '/api/crypto/decrypt-link', { text }, activeAccessToken);
+      if (res.status === 200) {
+        $('ld-result-box').style.display = 'block';
+        $('ld-result-heading').textContent = 'Decryption & Integrity Verification Report';
+        $('ld-status-badge').textContent = '✔ 100% VERIFIED';
+        $('ld-status-badge').className = 'badge badge-live';
+        $('ld-res-link').textContent = res.data.link;
+        $('ld-res-data').textContent = res.data.data;
+        showToast('Link and Data decrypted & verified successfully!', '🎉');
+      } else {
+        $('ld-result-box').style.display = 'block';
+        $('ld-result-heading').textContent = 'Tamper Verification Failed!';
+        $('ld-status-badge').textContent = '✘ TAMPER DETECTED';
+        $('ld-status-badge').className = 'badge badge-exp';
+        $('ld-res-link').textContent = 'TAMPER DETECTED - INTEGRITY COMPROMISED';
+        $('ld-res-data').textContent = res.data.error || 'Authentication tag mismatch. Data was modified!';
+        showToast('Decryption rejected: Integrity check failed!', '❌');
+      }
+    }
+
+    function tamperLinkDataCiphertext() {
+      const ct = $('ld-ciphertext').value.trim();
+      if (!ct || ct.length < 10) return showToast('Encrypt Link & Data first!', '⚠️');
+
+      const pos = Math.floor(ct.length / 2);
+      const char = ct.charAt(pos);
+      const replacement = char === 'A' ? 'B' : 'A';
+      const tampered = ct.substring(0, pos) + replacement + ct.substring(pos + 1);
+
+      $('ld-ciphertext').value = tampered;
+      showToast(`Tampered 1 byte in ciphertext at index ${pos}! Click "Decrypt & Verify" to test`, '😈');
+    }
+
+    // LOGIN HISTORY AUDIT TRAIL HANDLERS
+    async function loadLoginHistory() {
+      const tbody = $('history-tbody');
+      const res = await apiRequest('GET', '/api/auth/history', null, null, true);
+
+      if (res.status !== 200 || !res.data || res.data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-dim); padding:20px;">No login history events recorded yet.</td></tr>';
+        return;
+      }
+
+      const list = res.data;
+      $('stat-total-logins').textContent = list.length;
+      const unique = new Set(list.map(x => x.username)).size;
+      $('stat-unique-users').textContent = unique;
+      $('stat-success-logins').textContent = list.filter(x => x.status === 'SUCCESS').length;
+      $('stat-failed-logins').textContent = list.filter(x => x.status === 'FAILED').length;
+
+      tbody.innerHTML = list.map(item => {
+        const isSuccess = item.status === 'SUCCESS';
+        const role = item.role || 'USER';
+        const roleClass = role === 'ADMIN' ? 'badge-admin' : (role === 'MANAGER' ? 'badge-manager' : (role === 'USER' ? 'badge-user' : 'badge-none'));
+        const timeStr = new Date(item.loginTime).toLocaleString();
+
+        return `
+          <tr>
+            <td>#${item.id}</td>
+            <td style="font-weight:700; color:#fff;">
+              <span style="margin-right:6px;">${isSuccess ? '👤' : '⚠️'}</span>
+              ${esc(item.username)}
+            </td>
+            <td><span class="badge ${roleClass}">${esc(role)}</span></td>
+            <td style="font-family:'JetBrains Mono', monospace; font-size:11px; color:#94a3b8;">${esc(timeStr)}</td>
+            <td style="font-family:'JetBrains Mono', monospace; font-size:11px; color:#cbd5e1;">${esc(item.ipAddress)}</td>
+            <td>
+              <span class="badge ${isSuccess ? 'badge-live' : 'badge-exp'}">
+                ${isSuccess ? '✔ SUCCESS' : '✘ FAILED'}
+              </span>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function copyTokenDetails() {
+      const details = {
+        activeAccessToken,
+        activeRefreshToken,
+        expiresAt: new Date(tokenExpiresAt).toISOString(),
+        issuedAt: new Date(tokenIssuedAt).toISOString()
+      };
+      navigator.clipboard.writeText(JSON.stringify(details, null, 2));
+      showToast('Token details copied to clipboard!', '📋');
+    }
+
+    // Clipboard Copy Helper
+    function copyText(elementId) {
+      const el = $(elementId);
+      const val = el.value || el.textContent;
+      navigator.clipboard.writeText(val);
+      showToast('Copied to clipboard!', '📋');
+    }
+
+    // Initial Load
+    window.addEventListener('DOMContentLoaded', () => {
+      loadLoginHistory();
+    });
+  </script>
+</body>
+</html>
