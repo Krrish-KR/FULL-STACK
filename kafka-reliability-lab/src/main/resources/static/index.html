@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reliability Lab: retries, DLQ, idempotency</title>
+<style>
+:root{--bg:#eef1f4;--panel:#fff;--ink:#14212b;--mute:#5d6b77;--line:#d5dce2;--ok:#0f766e;--retry:#b45309;--dlq:#b42318;--dup:#5b4bb7;--sent:#2563a8}
+@media (prefers-color-scheme:dark){:root{--bg:#10171d;--panel:#18222b;--ink:#e6edf2;--mute:#92a1ad;--line:#2b3a46;--ok:#3dc4b4;--retry:#e8a04a;--dlq:#ff7b6e;--dup:#a79bff;--sent:#6aaeea}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Segoe UI",system-ui,sans-serif}
+main{max-width:1100px;margin:0 auto;padding:24px 16px 48px}
+h1{font-size:26px;margin:0 0 4px;letter-spacing:-.01em}
+p.sub{margin:0 0 20px;color:var(--mute);max-width:70ch}
+h2{font-size:16px;margin:0 0 10px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;margin-bottom:16px}
+.actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+.act{border:1px solid var(--line);border-radius:6px;padding:12px}
+.act b{display:block}.act span{display:block;color:var(--mute);font-size:13px;margin:2px 0 10px}
+button{font:inherit;cursor:pointer;border:1px solid var(--ink);background:var(--ink);color:var(--bg);border-radius:4px;padding:6px 12px}
+button.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+button:focus-visible{outline:3px solid var(--sent);outline-offset:2px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px}
+.stat{border-left:4px solid var(--c);padding:2px 0 2px 10px}
+.stat .n{font-size:28px;font-weight:700;line-height:1.1}.stat .l{color:var(--mute);font-size:13px}
+.cols{display:grid;grid-template-columns:2fr 1fr;gap:16px}
+@media(max-width:800px){.cols{grid-template-columns:1fr}}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+td,th{text-align:left;padding:5px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--mute);font-weight:600}
+.tag{font-weight:700;color:var(--c)}
+.scroll{max-height:420px;overflow:auto}
+.empty{color:var(--mute);padding:8px 0}
+code{font-family:Consolas,monospace;font-size:13px}
+#status{font-size:13px;color:var(--mute);float:right}
+</style>
+</head>
+<body>
+<main>
+<h1>Reliability Lab <span id="status"></span></h1>
+<p class="sub">Send scheduled-post events through Kafka and watch how the consumer retries with exponential backoff (1s, 2s, 4s, 8s), parks failures in the dead-letter topic, and skips duplicates.</p>
+
+<section class="panel">
+<h2>Run a scenario</h2>
+<div class="actions">
+ <div class="act"><b>Healthy event</b><span>Processes on the first attempt.</span><button onclick="send('NONE')">Send event</button></div>
+ <div class="act"><b>Transient failure</b><span>Fails twice, succeeds on attempt 3 after backoff.</span><button onclick="send('TRANSIENT')">Send event</button></div>
+ <div class="act"><b>Poison message</b><span>Always fails. Moves to the DLQ after 5 attempts (about 15s).</span><button onclick="send('ALWAYS')">Send event</button></div>
+ <div class="act"><b>Duplicate delivery</b><span>Re-sends the latest processed event ID.</span><button onclick="dup()">Send duplicate</button></div>
+</div>
+</section>
+
+<section class="panel">
+  <h2>Create a scheduled post manually</h2>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;align-items:end">
+    <div>
+      <label for="manualContent" style="display:block;font-weight:600;margin-bottom:6px">Post content</label>
+      <input id="manualContent" type="text" value="Manual scheduled post" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:4px;background:transparent;color:var(--ink)">
+    </div>
+    <div>
+      <label for="manualEventId" style="display:block;font-weight:600;margin-bottom:6px">Event ID (optional)</label>
+      <input id="manualEventId" type="text" placeholder="generate automatically" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:4px;background:transparent;color:var(--ink)">
+    </div>
+    <div>
+      <label for="manualScenario" style="display:block;font-weight:600;margin-bottom:6px">Failure scenario</label>
+      <select id="manualScenario" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:4px;background:transparent;color:var(--ink)">
+        <option value="SUCCESS">1. Successful publish</option>
+        <option value="DUPLICATE">2. Duplicate</option>
+        <option value="DLQ">3. Failed DLQ</option>
+      </select>
+    </div>
+    <div>
+      <button id="manualSubmit" style="width:100%">Create scheduled post</button>
+    </div>
+  </div>
+</section>
+
+<section class="panel"><h2>Counters</h2><div class="stats" id="stats"></div></section>
+
+<div class="cols">
+ <section class="panel"><h2>Event timeline</h2><div class="scroll"><table><thead><tr><th>Time</th><th>Type</th><th>Event</th><th>Detail</th></tr></thead><tbody id="events"></tbody></table></div></section>
+ <section class="panel"><h2>Dead-letter queue</h2><div id="dlq"></div>
+  <p style="margin-top:14px"><button class="ghost" onclick="reset()">Clear dashboard and idempotency store</button></p></section>
+</div>
+</main>
+<script>
+const colors={SENT:'--sent',SUCCESS:'--ok',RETRY:'--retry',DLQ:'--dlq',DUPLICATE:'--dup',REPLAY:'--sent'};
+let lastOk='';
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+async function post(u){try{const r=await fetch(u,{method:'POST'});return await r.json()}catch(e){$('status').textContent='Backend unreachable'}}
+const send=m=>post('/api/posts?failMode='+m).then(refresh);
+const reset=()=>post('/api/reset').then(refresh);
+const replay=id=>post('/api/dlq/'+id+'/replay').then(refresh);
+function dup(){const ok=(window._last||[]).find(e=>e.type==='SUCCESS');
+ if(!ok){alert('Send a healthy event first, then wait for SUCCESS.');return}
+ post('/api/posts/'+ok.eventId+'/duplicate').then(refresh)}
+async function manualSchedule(){
+ const content=$('manualContent').value.trim()||'Manual scheduled post';
+ const eventId=$('manualEventId').value.trim();
+ const scenario=$('manualScenario').value;
+ const url = new URL('/api/posts/manual', window.location.origin);
+ url.searchParams.set('content', content);
+ url.searchParams.set('scenario', scenario);
+ if (eventId) url.searchParams.set('eventId', eventId);
+ const body=await fetch(url,{method:'POST'});
+ const data=await body.json();
+ $('manualEventId').value=data.eventId;
+ $('status').textContent='Queued manual '+data.scenario+' event '+data.eventId;
+ refresh();
+}
+$('manualSubmit').addEventListener('click', manualSchedule);
+async function refresh(){
+ try{const d=await (await fetch('/api/state')).json();
+  window._last=d.events;
+  const lastSuccess=(d.events||[]).find(e=>e.type==='SUCCESS');
+  if(lastSuccess && !$('manualEventId').value){ $('manualEventId').value = lastSuccess.eventId; }
+  $('status').textContent='Live, updated '+new Date().toLocaleTimeString();
+  const st=d.stats,keys=['SENT','RETRY','SUCCESS','DUPLICATE','DLQ'];
+  $('stats').innerHTML=keys.map(k=>`<div class="stat" style="--c:var(${colors[k]})"><div class="n">${st[k]||0}</div><div class="l">${k==='DUPLICATE'?'Duplicates skipped':k==='DLQ'?'Sent to DLQ':k==='RETRY'?'Retries':k==='SUCCESS'?'Processed':'Produced'}</div></div>`).join('');
+  $('events').innerHTML=d.events.length?d.events.map(e=>`<tr><td><code>${e.time}</code></td><td class="tag" style="--c:var(${colors[e.type]||'--ink'})">${e.type}</td><td><code>${esc(e.eventId)}</code></td><td>${esc(e.detail)}</td></tr>`).join(''):'<tr><td colspan="4" class="empty">No events yet. Run a scenario above.</td></tr>';
+  $('dlq').innerHTML=d.dlq.length?d.dlq.map(m=>`<div style="margin-bottom:10px"><code>${esc(m.eventId)}</code><br><span style="color:var(--mute)">${esc(m.content)}</span><br><button class="ghost" onclick="replay('${esc(m.eventId)}')">Replay with fix</button></div>`).join(''):'<div class="empty">No parked messages.</div>';
+ }catch(e){$('status').textContent='Backend unreachable. Is Spring Boot running?'}
+}
+refresh();setInterval(refresh,1000);
+</script>
+</body>
+</html>
