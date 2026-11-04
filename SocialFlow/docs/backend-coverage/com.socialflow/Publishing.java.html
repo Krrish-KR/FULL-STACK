@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Publishing.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">socialflow</a> &gt; <a href="index.source.html" class="el_package">com.socialflow</a> &gt; <span class="el_source">Publishing.java</span></div><h1>Publishing.java</h1><pre class="source lang-java linenums">package com.socialflow;
+
+import java.time.OffsetDateTime;
+import java.util.concurrent.TimeUnit;
+import org.apache.kafka.clients.admin.NewTopic;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.*;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.config.TopicBuilder;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.scheduling.annotation.*;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+public class Publishing {
+  final JdbcTemplate db;
+  final KafkaTemplate&lt;String, String&gt; kafka;
+  final Api api;
+
+<span class="fc" id="L22">  public Publishing(JdbcTemplate db, KafkaTemplate&lt;String, String&gt; kafka, Api api) {</span>
+<span class="fc" id="L23">    this.db = db;</span>
+<span class="fc" id="L24">    this.kafka = kafka;</span>
+<span class="fc" id="L25">    this.api = api;</span>
+<span class="fc" id="L26">  }</span>
+
+  // The database queue is a durable outbox. Re-delivery is safe: consumer locks and checks status.
+  @Scheduled(fixedDelay = 15000)
+  public void dispatch() {
+<span class="fc" id="L31">    db.update(</span>
+        &quot;UPDATE posts SET status='QUEUED' WHERE status='SCHEDULED' AND scheduled_at&lt;=?&quot;,
+<span class="fc" id="L33">        OffsetDateTime.now());</span>
+<span class="fc bfc" id="L34" title="All 2 branches covered.">    for (var p : db.queryForList(&quot;SELECT id FROM posts WHERE status='QUEUED' LIMIT 100&quot;)) {</span>
+<span class="fc" id="L35">      String id = p.get(&quot;id&quot;).toString();</span>
+      try {
+<span class="fc" id="L37">        kafka.send(&quot;socialflow.publish&quot;, id, id).get(10, TimeUnit.SECONDS);</span>
+<span class="fc" id="L38">      } catch (Exception e) {</span>
+<span class="fc" id="L39">        org.slf4j.LoggerFactory.getLogger(getClass())</span>
+<span class="fc" id="L40">            .warn(&quot;Queue delivery failed; retained for retry: {}&quot;, id);</span>
+<span class="fc" id="L41">      }</span>
+<span class="fc" id="L42">    }</span>
+<span class="fc" id="L43">  }</span>
+
+  @KafkaListener(topics = &quot;socialflow.publish&quot;, autoStartup = &quot;${app.scheduling:true}&quot;)
+  @Transactional
+  public void publish(String id) {
+<span class="fc" id="L48">    var rows = db.queryForList(&quot;SELECT * FROM posts WHERE id=? FOR UPDATE&quot;, id);</span>
+<span class="fc bfc" id="L49" title="All 4 branches covered.">    if (rows.isEmpty() || !rows.get(0).get(&quot;status&quot;).equals(&quot;QUEUED&quot;)) return;</span>
+<span class="fc" id="L50">    db.update(</span>
+<span class="fc" id="L51">        &quot;UPDATE posts SET status='PUBLISHED',published_at=? WHERE id=?&quot;, OffsetDateTime.now(), id);</span>
+<span class="fc" id="L52">    api.notice(&quot;Published in sandbox: &quot; + rows.get(0).get(&quot;title&quot;));</span>
+<span class="fc" id="L53">  }</span>
+
+  @Configuration
+  @EnableScheduling
+  @ConditionalOnProperty(name = &quot;app.scheduling&quot;, havingValue = &quot;true&quot;, matchIfMissing = true)
+<span class="fc" id="L58">  static class Scheduling {</span>
+    @Bean
+    NewTopic topic() {
+<span class="fc" id="L61">      return TopicBuilder.name(&quot;socialflow.publish&quot;).partitions(3).replicas(1).build();</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

@@ -1,0 +1,13 @@
+GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
+socialflow,com.socialflow,Application,5,3,0,0,2,1,1,1,1,1
+socialflow,com.socialflow,Errors,2,48,1,1,0,11,1,5,0,5
+socialflow,com.socialflow,Api.Login,0,9,0,0,0,1,0,1,0,1
+socialflow,com.socialflow,Security,0,102,0,2,0,19,0,12,0,11
+socialflow,com.socialflow,Api.Person,0,15,0,0,0,1,0,1,0,1
+socialflow,com.socialflow,Api.Comment,0,6,0,0,0,1,0,1,0,1
+socialflow,com.socialflow,Api,0,643,0,30,0,117,0,39,0,24
+socialflow,com.socialflow,Api.Role,0,6,0,0,0,1,0,1,0,1
+socialflow,com.socialflow,Seed,0,320,1,15,0,33,1,9,0,2
+socialflow,com.socialflow,Api.Post,0,18,0,0,0,1,0,1,0,1
+socialflow,com.socialflow,Publishing.Scheduling,0,11,0,0,0,2,0,2,0,2
+socialflow,com.socialflow,Publishing,0,112,0,6,0,22,0,6,0,3

@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Seed.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">socialflow</a> &gt; <a href="index.source.html" class="el_package">com.socialflow</a> &gt; <span class="el_source">Seed.java</span></div><h1>Seed.java</h1><pre class="source lang-java linenums">package com.socialflow;
+
+import java.time.OffsetDateTime;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+@Component
+public class Seed implements CommandLineRunner {
+  final Api api;
+  final org.springframework.jdbc.core.JdbcTemplate db;
+  final org.springframework.security.crypto.password.PasswordEncoder passwords;
+  final boolean enabled;
+  final String password;
+
+  public Seed(
+      Api api,
+      org.springframework.jdbc.core.JdbcTemplate db,
+      org.springframework.security.crypto.password.PasswordEncoder passwords,
+      @Value(&quot;${app.seed}&quot;) boolean enabled,
+<span class="fc" id="L22">      @Value(&quot;${app.demo-password}&quot;) String password) {</span>
+<span class="fc" id="L23">    this.api = api;</span>
+<span class="fc" id="L24">    this.db = db;</span>
+<span class="fc" id="L25">    this.passwords = passwords;</span>
+<span class="fc" id="L26">    this.enabled = enabled;</span>
+<span class="fc" id="L27">    this.password = password;</span>
+<span class="fc" id="L28">  }</span>
+
+  @Override
+  @Transactional
+  public void run(String... args) {
+<span class="pc bpc" id="L33" title="1 of 4 branches missed.">    if (!enabled || db.queryForObject(&quot;SELECT COUNT(*) FROM members&quot;, Integer.class) &gt; 0) return;</span>
+<span class="fc" id="L34">    String owner = Api.id();</span>
+<span class="fc" id="L35">    db.update(</span>
+        &quot;INSERT INTO members VALUES(?,?,?,?,?)&quot;,
+        owner,
+        &quot;Krrish Kumar&quot;,
+        &quot;admin@socialflow.local&quot;,
+<span class="fc" id="L40">        passwords.encode(password),</span>
+        &quot;ADMIN&quot;);
+<span class="fc bfc" id="L42" title="All 2 branches covered.">    for (String role : new String[] {&quot;EDITOR&quot;, &quot;VIEWER&quot;})</span>
+<span class="fc" id="L43">      db.update(</span>
+          &quot;INSERT INTO members VALUES(?,?,?,?,?)&quot;,
+<span class="fc" id="L45">          Api.id(),</span>
+<span class="fc bfc" id="L46" title="All 2 branches covered.">          role.equals(&quot;EDITOR&quot;) ? &quot;Aarav Sharma&quot; : &quot;Maya Kapoor&quot;,</span>
+<span class="fc" id="L47">          role.toLowerCase() + &quot;@socialflow.local&quot;,</span>
+<span class="fc" id="L48">          passwords.encode(password),</span>
+          role);
+<span class="fc" id="L50">    String[] titles = {</span>
+      &quot;A little behind the scenes&quot;,
+      &quot;Build something worth sharing&quot;,
+      &quot;Meet the people behind the pixels&quot;,
+      &quot;Your next big idea starts here&quot;,
+      &quot;Five ways to work smarter&quot;,
+      &quot;A fresh perspective for your feed&quot;
+    };
+<span class="fc" id="L58">    String[] channels = {&quot;Instagram&quot;, &quot;LinkedIn&quot;, &quot;X&quot;};</span>
+<span class="fc bfc" id="L59" title="All 2 branches covered.">    for (int i = 0; i &lt; 24; i++) {</span>
+<span class="fc" id="L60">      var date = OffsetDateTime.now().minusDays(24 - i);</span>
+<span class="fc" id="L61">      db.update(</span>
+          &quot;INSERT INTO&quot;
+              + &quot; posts(id,title,body,channel,status,created_at,published_at,author_id,impressions,engagements)&quot;
+              + &quot; VALUES(?,?,?,?,?,?,?,?,?,?)&quot;,
+<span class="fc" id="L65">          Api.id(),</span>
+          titles[i % 6],
+          &quot;Great work starts with curiosity. Here is a glimpse of what our team has been building&quot;
+              + &quot; this week. What are you creating? #SocialFlow #BuildTogether&quot;,
+          channels[i % 3],
+          &quot;PUBLISHED&quot;,
+          date,
+          date,
+          owner,
+<span class="fc" id="L74">          1200 + i * 137,</span>
+<span class="fc" id="L75">          45 + i * 9);</span>
+    }
+<span class="fc bfc" id="L77" title="All 2 branches covered.">    for (int i = 0; i &lt; 5; i++)</span>
+<span class="fc" id="L78">      db.update(</span>
+          &quot;INSERT INTO posts(id,title,body,channel,status,scheduled_at,created_at,author_id)&quot;
+              + &quot; VALUES(?,?,?,?,?,?,?,?)&quot;,
+<span class="fc" id="L81">          Api.id(),</span>
+          titles[i],
+          &quot;Something good is on the way. Join the conversation and share your ideas with our&quot;
+              + &quot; community. #CreateTogether&quot;,
+          channels[i % 3],
+<span class="fc bfc" id="L86" title="All 2 branches covered.">          i &lt; 3 ? &quot;SCHEDULED&quot; : &quot;DRAFT&quot;,</span>
+<span class="fc bfc" id="L87" title="All 2 branches covered.">          i &lt; 3 ? OffsetDateTime.now().plusDays(i + 1) : null,</span>
+<span class="fc" id="L88">          OffsetDateTime.now(),</span>
+          owner);
+<span class="fc" id="L90">    api.notice(&quot;Welcome to SocialFlow. Your sandbox workspace is ready.&quot;);</span>
+<span class="fc" id="L91">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

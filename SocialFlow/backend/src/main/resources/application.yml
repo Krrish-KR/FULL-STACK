@@ -1,0 +1,30 @@
+server:
+  port: 8080
+  error:
+    include-message: never
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/socialflow}
+    username: ${DB_USER:socialflow}
+    password: ${DB_PASSWORD:socialflow_local}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
+    consumer:
+      group-id: socialflow-publish
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all
+      properties:
+        enable.idempotence: true
+        delivery.timeout.ms: 10000
+        request.timeout.ms: 5000
+        max.block.ms: 5000
+app:
+  jwt-secret: ${JWT_SECRET:local-only-change-this-secret-before-any-deployment-2026}
+  seed: ${SEED_DEMO:true}
+  scheduling: ${SCHEDULING:true}
+  demo-password: ${DEMO_PASSWORD:SocialFlow123!}
