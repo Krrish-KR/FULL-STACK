@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CI/CD Lab Dashboard</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700;800&family=Source+Sans+3:wght@400;600&display=swap">
+<style>
+:root{--bg:#eef1ec;--panel:#fbfcf8;--ink:#17282b;--mute:#5d6f70;--line:#cfd8d0;--stable:#2859a8;--canary:#d99a00;--ok:#23845a;--bad:#b83a2e;--run:#7a5af0;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0f1b1d;--panel:#16282b;--ink:#e6efe9;--mute:#93a8a6;--line:#2c4245;--stable:#6ea0f0;--canary:#f2b933;--ok:#4cc58f;--bad:#f0746a;--run:#a28bff}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Source Sans 3",system-ui,sans-serif}
+main{max-width:1060px;margin:0 auto;padding:20px 16px 48px}
+h1,h2{font-family:"Bricolage Grotesque",system-ui,sans-serif;margin:0}h1{font-size:clamp(1.8rem,5vw,2.8rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:1.25rem;font-weight:700}p{margin:.3rem 0;color:var(--mute);max-width:70ch}
+section{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px;margin-top:18px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+button{font:inherit;font-weight:600;background:var(--ink);color:var(--bg);border:0;border-radius:6px;padding:8px 14px;cursor:pointer}
+button.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}button:focus-visible,input:focus-visible{outline:3px solid var(--run);outline-offset:2px}
+.pipe{display:grid;grid-template-columns:repeat(6,1fr);gap:0;margin-top:14px}
+.st{position:relative;padding:12px 8px 0;text-align:center;font-size:.85rem;font-weight:600}
+.st i{display:block;width:34px;height:34px;border-radius:50%;margin:0 auto 6px;border:3px solid var(--line);background:var(--panel);position:relative;z-index:1;transition:.25s}
+.st:not(:last-child)::after{content:"";position:absolute;top:29px;left:50%;width:100%;height:3px;background:var(--line)}
+.st.ok i{background:var(--ok);border-color:var(--ok)}.st.bad i{background:var(--bad);border-color:var(--bad)}.st.run i{border-color:var(--run);animation:p 1s infinite}
+.st.ok:not(:last-child)::after{background:var(--ok)}@keyframes p{50%{box-shadow:0 0 0 7px color-mix(in srgb,var(--run) 25%,transparent)}}
+.st small{display:block;color:var(--mute);font-weight:400}
+table{width:100%;border-collapse:collapse;margin-top:10px;font-size:.92rem}th,td{text-align:left;padding:7px 6px;border-bottom:1px solid var(--line)}th{color:var(--mute);font-weight:600}
+.tag{display:inline-block;padding:1px 8px;border-radius:99px;font-size:.78rem;font-weight:600;border:1px solid var(--line)}
+.pass{color:var(--ok)}.fail{color:var(--bad)}.wait{color:var(--mute)}
+.split{height:34px;display:flex;border-radius:6px;overflow:hidden;margin:12px 0;font-weight:600;font-size:.9rem}
+.split div{display:flex;align-items:center;justify-content:center;color:#fff;transition:width .3s;min-width:0;overflow:hidden}
+input[type=range]{width:100%;accent-color:var(--canary)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}@media(max-width:700px){.grid{grid-template-columns:1fr}.st{font-size:.7rem}}
+.log{font:.85rem/1.5 ui-monospace,monospace;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:10px;min-height:70px;max-height:150px;overflow:auto}
+input[type=text],input[type=number]{font:inherit;padding:7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);min-width:0}
+label{font-size:.9rem;color:var(--mute)}.pill{font-size:.85rem;font-weight:600}.live{color:var(--ok)}.demo{color:var(--canary)}
+</style></head><body><main>
+<div class="row"><div><h1>Ship it safely</h1><p>Experiments 3.2.1 and 3.2.2: build, test, containerize and release a Spring Boot service with a canary rollout.</p></div>
+<span class="pill" id="mode">checking API…</span></div>
+
+<section><div class="row"><h2>Pipeline</h2><div>
+<label><input type="checkbox" id="breakIt"> Break the contract</label>
+<button id="runPipe">Run pipeline</button></div></div>
+<p>Tick the box and run it: the pipeline stops at the contract stage and nothing gets deployed.</p>
+<div class="pipe" id="pipe"></div><div class="log" id="plog" style="margin-top:14px">Waiting for a run. Press “Run pipeline”.</div></section>
+
+<section><div class="row"><h2>Test suite</h2><button class="ghost" id="runTests">Run all tests</button></div>
+<table><thead><tr><th>Test</th><th>Level</th><th>Tool</th><th>Result</th></tr></thead><tbody id="tests"></tbody></table></section>
+
+<section><div class="row"><h2>Canary release</h2><span class="pill" id="verdict">Stable only</span></div>
+<p>Move the slider to choose how many users get v2.0.0. Set the canary error rate manually to test whether the platform catches unhealthy traffic and rolls it back.</p>
+<div class="split" id="split"></div>
+<label for="w">Traffic to canary: <b id="wv">10</b>%</label><input type="range" id="w" min="0" max="100" value="10">
+<label for="er" style="display:block;margin-top:12px">Manual canary error rate: <b id="erv">0</b>%</label><input type="range" id="er" min="0" max="100" value="0">
+<div class="row" style="margin-top:10px"><div><button id="send">Send 200 requests</button> <button class="ghost" id="promote">Promote to 100%</button> <button class="ghost" id="rollback">Roll back</button></div></div>
+<table><thead><tr><th>Version</th><th>Requests</th><th>Errors</th><th>Error rate</th></tr></thead><tbody id="ctab"></tbody></table></section>
+
+<section><h2>Live product API</h2><p id="apinote">Calls <code>/api/products</code> on the running Spring Boot service.</p>
+<div class="row" style="justify-content:flex-start;margin:10px 0"><input type="text" id="pn" placeholder="Product name"><input type="number" id="pp" placeholder="Price" min="0.01" step="0.01"><button id="add">Add product</button></div>
+<table><thead><tr><th>ID</th><th>Name</th><th>Price</th><th></th></tr></thead><tbody id="prods"></tbody></table></section>
+</main>
+<script>
+const $=id=>document.getElementById(id),sleep=ms=>new Promise(r=>setTimeout(r,ms));
+/* ---------- pipeline ---------- */
+const stages=[["Commit","push to main"],["Build","mvn package"],["Unit + API","JUnit, MockMvc"],["Contract","Pact"],["Integration","Testcontainers"],["Deploy","Docker, canary"]];
+$("pipe").innerHTML=stages.map((s,i)=>`<div class="st" id="s${i}"><i></i>${s[0]}<small>${s[1]}</small></div>`).join("");
+const plog=t=>{$("plog").innerHTML+="<br>"+t;$("plog").scrollTop=1e5};
+$("runPipe").onclick=async()=>{const b=$("runPipe");b.disabled=true;$("plog").textContent="Pipeline started.";
+ stages.forEach((_,i)=>$("s"+i).className="st");
+ for(let i=0;i<stages.length;i++){const el=$("s"+i);el.className="st run";await sleep(800);
+  if(i==3&&$("breakIt").checked){el.className="st bad";plog("Contract failed: provider no longer returns field “price”. Deployment cancelled.");b.disabled=false;return}
+  el.className="st ok";plog(stages[i][0]+" passed.")}
+ plog("Canary deployed. Watch it below.");b.disabled=false};
+/* ---------- tests ---------- */
+const T=[["ProductServiceTest","Unit","JUnit 5 + Mockito",6],["ProductControllerTest","API","MockMvc",5],["ProductContractConsumerTest","Contract","Pact consumer",1],["ProductContractProviderTest","Contract","Pact provider",1],["ProductRepositoryIT","Integration","Testcontainers",1]];
+const tstate=T.map(()=>"wait");
+function drawTests(){$("tests").innerHTML=T.map((t,i)=>`<tr><td>${t[0]}</td><td><span class="tag">${t[1]}</span></td><td>${t[2]}</td><td class="${tstate[i]}">${tstate[i]=="pass"?"Passed ("+t[3]+")":tstate[i]=="run"?"Running…":"Not run"}</td></tr>`).join("")}
+$("runTests").onclick=async()=>{for(let i=0;i<T.length;i++){tstate[i]="run";drawTests();await sleep(500);tstate[i]="pass";drawTests()}};drawTests();
+/* ---------- canary ---------- */
+let stats,w=10,manualErrorRate=0;const reset=()=>{stats={s:{n:0,e:0},c:{n:0,e:0}}};reset();
+function drawCanary(){const sw=100-w;$("wv").textContent=w;$("erv").textContent=manualErrorRate;
+ $("split").innerHTML=`<div style="width:${sw}%;background:var(--stable)">${sw?"v1.0.0 · "+sw+"%":""}</div><div style="width:${w}%;background:var(--canary);color:#17282b">${w?"v2.0.0 · "+w+"%":""}</div>`;
+ const row=(v,o)=>`<tr><td>${v}</td><td>${o.n}</td><td>${o.e}</td><td>${o.n?(o.e/o.n*100).toFixed(1)+"%":"-"}</td></tr>`;
+ $("ctab").innerHTML=row("v1.0.0 stable",stats.s)+row("v2.0.0 canary",stats.c)}
+$("w").oninput=e=>{w=+e.target.value;drawCanary()};
+$("er").oninput=e=>{manualErrorRate=+e.target.value;drawCanary()};
+$("send").onclick=()=>{for(let i=0;i<200;i++){const c=Math.random()*100<w,o=c?stats.c:stats.s;o.n++;if(c&&manualErrorRate>0&&Math.random()<(manualErrorRate/100))o.e++}
+ drawCanary();const c=stats.c;if(c.n>20&&c.e/c.n>.05){doRollback("Auto-rollback: canary error rate "+(c.e/c.n*100).toFixed(1)+"% is above 5%.")}
+ else if(c.n)verdict("Canary healthy so far","ok")};
+function verdict(t,k){$("verdict").textContent=t;$("verdict").className="pill "+(k=="ok"?"pass":"fail")}
+function doRollback(m){w=0;$("w").value=0;drawCanary();verdict(m,"bad")}
+$("rollback").onclick=()=>doRollback("Rolled back: all traffic on v1.0.0.");
+$("promote").onclick=()=>{const c=stats.c;if(c.n>20&&c.e/c.n>.05){verdict("Promotion blocked: canary is unhealthy.","bad");return}w=100;$("w").value=100;drawCanary();verdict("Promoted: v2.0.0 serves everyone","ok")};
+drawCanary();
+/* ---------- products ---------- */
+let live=false,local=[{id:1,name:"Laptop",price:999.99},{id:2,name:"Keyboard",price:49.5}];
+async function load(){try{const r=await fetch("/api/products");if(!r.ok)throw 0;local=await r.json();live=true}catch(e){live=false}
+ $("mode").textContent=live?"Connected to Spring Boot API":"Demo mode: no API found";$("mode").className="pill "+(live?"live":"demo");
+ $("apinote").textContent=live?"Reading and writing the running service at /api/products.":"No API here, so this table is in-memory. Run the app with mvn spring-boot:run to use the real service.";
+ $("prods").innerHTML=local.map(p=>`<tr><td>${p.id}</td><td>${p.name}</td><td>${Number(p.price).toFixed(2)}</td><td><button class="ghost" data-id="${p.id}">Delete</button></td></tr>`).join("")||`<tr><td colspan="4">No products yet. Add one above.</td></tr>`}
+$("prods").onclick=async e=>{const id=e.target.dataset.id;if(!id)return;if(live)await fetch("/api/products/"+id,{method:"DELETE"});else local=local.filter(p=>p.id!=id);load()};
+$("add").onclick=async()=>{const name=$("pn").value.trim(),price=parseFloat($("pp").value);if(!name||!(price>0)){$("pn").focus();return}
+ if(live)await fetch("/api/products",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name,price})});
+ else local.push({id:Math.max(0,...local.map(p=>p.id))+1,name,price});$("pn").value=$("pp").value="";load()};
+load();
+</script></body></html>
